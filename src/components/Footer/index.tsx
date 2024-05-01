@@ -28,7 +28,7 @@ const Footer = () => {
     },
     {
       icon: Youtube,
-      link: 'https://www.youtube.com/@caranchoaerodesign',
+      link: 'https://www.youtube.com/@caranchoaer',
     },
   ]
 
