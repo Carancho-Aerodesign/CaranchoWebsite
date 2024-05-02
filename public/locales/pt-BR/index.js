@@ -4,7 +4,6 @@ const ptBR = {
       home: 'Início',
       categories: 'Categorias',
       team: 'Equipe',
-      //papers: 'Publicações',
     },
   },
   footer: {
@@ -19,7 +18,7 @@ const ptBR = {
     page_header: {
       title: 'Categorias',
       description: `Nossos times desenvolvem tecnologias que
-      disputam títulos em várias categorias de competições, como:`,
+      disputam títulos em algumas categorias da competições, como:`,
       categories: [
         'Micro',
         'Regular'
@@ -74,7 +73,7 @@ const ptBR = {
       },
       development_card: {
         title: 'Desenvolvimento',
-        description: 'Desenvolvemos a estrutura e eletrônica das nossas Aeronaves',
+        description: 'Desenvolvemos à estrutura e eletrônica das nossas Aeronaves',
       },
       activity_card_button: 'Ver mais',
     },
@@ -85,7 +84,7 @@ const ptBR = {
       A equipe é composta por estudantes de diversas engenharias da Universidade Federal de Santa Maria 
       e se dedica ao desafio de projetar e construir aeronaves rádio controladas. Este trabalho é 
       desenvolvido especificamente para participar da competição anual SAE Brasil Aerodesign, 
-      onde demonstram suas habilidades e inovações na área aeroespacial.`,
+      onde demonstram suas habilidades e inovações na área aeronautica.`,
       features: {
         participations: 'Participações',
         papers: 'Publicações',

@@ -73,11 +73,11 @@ const en = {
     },
     about_us: {
       title: 'About Us',
-      description: `Founded in 2004, the Carancho Aerodesign has been celebrating 20 years of activity this year.
-      The team consists of students from various engineering disciplines at the Federal University of Santa Maria
+      description: `Founded in 2004, Carancho Aerodesign is celebrating 20 years of activity this year.
+      The team is made up of students from various engineering disciplines at the Federal University of Santa Maria
       and is dedicated to the challenge of designing and building radio-controlled aircraft. This work is
-      developed specifically to participate in the annual SAE Brazil Aerodesign competition,
-      where they demonstrate their skills and innovations in the aerospace area.`,
+      developed specifically to participate in the annual SAE Brasil Aerodesign competition,
+      where they demonstrate their skills and innovations in the aeronautical field.`,
       features: {
         participations: 'Participations',
         papers: 'Publications',
