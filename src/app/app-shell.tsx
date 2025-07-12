@@ -28,9 +28,10 @@ const blankSiteSettings = {
     participations: 0
 };
 
+
 // --- COMPONENTES DE UI (Navbar, Modals, etc.) ---
-const LoadingScreen = () => ( <div className="fixed inset-0 bg-white/70 backdrop-blur-sm flex items-center justify-center z-[100]"><div className="flex flex-col items-center"><img src="https://raw.githubusercontent.com/Carancho-Aerodesign/CaranchoWebsite/main/src/assets/logo-with-label.png" alt="Logo Carancho Aerodesign" className="h-16 animate-pulse" /><p className="mt-4 text-lg text-gray-700">A carregar...</p></div></div> );
-const Navbar = ({ currentPage, setCurrentPage, user, auth }) => { const [isMenuOpen, setIsMenuOpen] = useState(false); const handleNavClick = (page) => { setIsMenuOpen(false); setCurrentPage(page); }; const handleLogout = async () => { if(auth) { await signOut(auth); } handleNavClick('home'); }; return ( <nav className="bg-white/80 backdrop-blur-lg fixed top-0 left-0 right-0 z-40 border-b border-gray-200"><div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"><div className="flex items-center justify-between h-20"><div className="flex-shrink-0 flex items-center cursor-pointer" onClick={() => handleNavClick('home')}><img className="h-10" src="https://raw.githubusercontent.com/Carancho-Aerodesign/CaranchoWebsite/main/src/assets/logo-with-label.png" alt="Logo Carancho Aerodesign" /></div><div className="hidden md:block"><div className="ml-10 flex items-baseline space-x-2"><NavItem onClick={() => handleNavClick('home')} active={currentPage === 'home'}>Início</NavItem><NavItem onClick={() => handleNavClick('about')} active={currentPage === 'about'}>Sobre Nós</NavItem>{user && <NavItem onClick={() => handleNavClick('admin')} active={currentPage === 'admin'}>Painel Admin</NavItem>}</div></div><div className="flex items-center"><div className="hidden md:block">{user ? <LogoutButton onClick={handleLogout} /> : <LoginButton onClick={() => handleNavClick('login')} />}</div><div className="md:hidden"><button onClick={() => setIsMenuOpen(!isMenuOpen)} className="p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100">{isMenuOpen ? <X size={24} /> : <Menu size={24} />}</button></div></div></div></div>{isMenuOpen && (<div className="md:hidden bg-white border-t border-gray-200"><div className="px-2 pt-2 pb-3 space-y-1 sm:px-3"><NavItemMobile onClick={() => handleNavClick('home')} active={currentPage === 'home'}>Início</NavItemMobile><NavItemMobile onClick={() => handleNavClick('about')} active={currentPage === 'about'}>Sobre Nós</NavItemMobile>{user && <NavItemMobile onClick={() => handleNavClick('admin')} active={currentPage === 'admin'}>Painel Admin</NavItemMobile>}</div><div className="p-4 border-t border-gray-200">{user ? <LogoutButton onClick={handleLogout} fullWidth /> : <LoginButton onClick={() => handleNavClick('login')} fullWidth />}</div></div>)}</nav> );};
+const LoadingScreen = () => ( <div className="fixed inset-0 bg-white/70 backdrop-blur-sm flex items-center justify-center z-[100]"><div className="flex flex-col items-center"><img src="https://raw.githubusercontent.com/Carancho-Aerodesign/CaranchoWebsite/v1.3/src/assets/logoWithLabel.png" alt="Logo Carancho Aerodesign" className="h-16 animate-pulse" /><p className="mt-4 text-lg text-gray-700">A carregar...</p></div></div> );
+const Navbar = ({ currentPage, setCurrentPage, user, auth }) => { const [isMenuOpen, setIsMenuOpen] = useState(false); const handleNavClick = (page) => { setIsMenuOpen(false); setCurrentPage(page); }; const handleLogout = async () => { if(auth) { await signOut(auth); } handleNavClick('home'); }; return ( <nav className="bg-white/80 backdrop-blur-lg fixed top-0 left-0 right-0 z-40 border-b border-gray-200"><div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"><div className="flex items-center justify-between h-20"><div className="flex-shrink-0 flex items-center cursor-pointer" onClick={() => handleNavClick('home')}><img className="h-10" src="https://raw.githubusercontent.com/Carancho-Aerodesign/CaranchoWebsite/v1.3/src/assets/logoWithLabel.png" alt="Logo Carancho Aerodesign" /></div><div className="hidden md:block"><div className="ml-10 flex items-baseline space-x-2"><NavItem onClick={() => handleNavClick('home')} active={currentPage === 'home'}>Início</NavItem><NavItem onClick={() => handleNavClick('about')} active={currentPage === 'about'}>Sobre Nós</NavItem>{user && <NavItem onClick={() => handleNavClick('admin')} active={currentPage === 'admin'}>Painel Admin</NavItem>}</div></div><div className="flex items-center"><div className="hidden md:block">{user ? <LogoutButton onClick={handleLogout} /> : <LoginButton onClick={() => handleNavClick('login')} />}</div><div className="md:hidden"><button onClick={() => setIsMenuOpen(!isMenuOpen)} className="p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100">{isMenuOpen ? <X size={24} /> : <Menu size={24} />}</button></div></div></div></div>{isMenuOpen && (<div className="md:hidden bg-white border-t border-gray-200"><div className="px-2 pt-2 pb-3 space-y-1 sm:px-3"><NavItemMobile onClick={() => handleNavClick('home')} active={currentPage === 'home'}>Início</NavItemMobile><NavItemMobile onClick={() => handleNavClick('about')} active={currentPage === 'about'}>Sobre Nós</NavItemMobile>{user && <NavItemMobile onClick={() => handleNavClick('admin')} active={currentPage === 'admin'}>Painel Admin</NavItemMobile>}</div><div className="p-4 border-t border-gray-200">{user ? <LogoutButton onClick={handleLogout} fullWidth /> : <LoginButton onClick={() => handleNavClick('login')} fullWidth />}</div></div>)}</nav> );};
 const NavItem = ({ onClick, children, active }) => (<a href="#" onClick={(e) => { e.preventDefault(); onClick(); }} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors duration-300 ${active ? 'bg-[#d4982c] text-white' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'}`}>{children}</a>);
 const NavItemMobile = ({ onClick, children, active }) => (<a href="#" onClick={(e) => { e.preventDefault(); onClick(); }} className={`block px-3 py-2 rounded-md text-base font-medium transition-colors duration-300 ${active ? 'bg-[#d4982c] text-white' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'}`}>{children}</a>);
 const LoginButton = ({ onClick, fullWidth = false }) => (<button onClick={onClick} className={`bg-[#d4982c] hover:bg-[#b58426] text-white font-semibold py-2 px-5 rounded-lg flex items-center justify-center transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-amber-500/50 ${fullWidth ? 'w-full' : ''}`}><LogIn className="h-5 w-5 mr-2" />Login</button>);
@@ -141,7 +142,7 @@ const LoginPage = ({ setCurrentPage, setNotification, auth, isAuthReady, isAdmin
         <div className="w-full h-full flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 animate-fade-in-up">
             <div className="max-w-md w-full space-y-8 bg-white backdrop-blur-sm p-10 rounded-2xl shadow-2xl border border-gray-200">
                 <div>
-                    <img src="https://raw.githubusercontent.com/Carancho-Aerodesign/CaranchoWebsite/main/src/assets/logo-with-label.png" alt="Logo Carancho Aerodesign" className="mx-auto h-12 w-auto" />
+                    <img src="https://raw.githubusercontent.com/Carancho-Aerodesign/CaranchoWebsite/v1.3/src/assets/logoWithLabel.png" alt="Logo Carancho Aerodesign" className="mx-auto h-12 w-auto" />
                     <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">Acesso Administrativo</h2>
                     <p className="mt-2 text-center text-sm text-gray-600">Área reservada para a gestão do site.</p>
                 </div>
@@ -197,7 +198,7 @@ const RegisterPage = ({ setCurrentPage, setNotification, auth, isAuthReady, db }
         <div className="w-full h-full flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 animate-fade-in-up">
             <div className="max-w-md w-full space-y-8 bg-white backdrop-blur-sm p-10 rounded-2xl shadow-2xl border border-gray-200">
                 <div>
-                    <img src="https://raw.githubusercontent.com/Carancho-Aerodesign/CaranchoWebsite/main/src/assets/logo-with-label.png" alt="Logo Carancho Aerodesign" className="mx-auto h-12 w-auto" />
+                    <img src="https://raw.githubusercontent.com/Carancho-Aerodesign/CaranchoWebsite/v1.3/src/assets/logoWithLabel.png" alt="Logo Carancho Aerodesign" className="mx-auto h-12 w-auto" />
                     <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">Registar Novo Administrador</h2>
                 </div>
                 <form className="mt-8 space-y-6" onSubmit={handleRegister}>
@@ -254,7 +255,7 @@ const AdminPage = ({ db, storage, teamHierarchy, sponsors, achievements, siteSet
     const [isUploading, setIsUploading] = useState(false);
     const [achievementForm, setAchievementForm] = useState({ title: '', description: '' });
     const [localSettings, setLocalSettings] = useState(siteSettings);
-    const [sponsorForm, setSponsorForm] = useState({ name: '' });
+    const [sponsorForm, setSponsorForm] = useState({ name: '', logoUrl: '' });
     const [sponsorLogoFile, setSponsorLogoFile] = useState(null);
     const [sponsorLogoPreview, setSponsorLogoPreview] = useState('');
 
@@ -296,8 +297,7 @@ const AdminPage = ({ db, storage, teamHierarchy, sponsors, achievements, siteSet
             if (memberImageFile) {
                 const imageRef = ref(storage, `public/${appId}/memberImages/${memberId}.jpg`);
                 const uploadTask = await uploadBytes(imageRef, memberImageFile);
-                const downloadURL = await getDownloadURL(uploadTask.ref);
-                memberData.img = downloadURL;
+                memberData.img = await getDownloadURL(uploadTask.ref);
             }
             const newHierarchy = JSON.parse(JSON.stringify(teamHierarchy));
             const removeMemberById = (id) => {
@@ -373,21 +373,25 @@ const AdminPage = ({ db, storage, teamHierarchy, sponsors, achievements, siteSet
 
     const handleSponsorSubmit = async (e) => {
         e.preventDefault();
-        if (!sponsorForm.name || !sponsorLogoFile) {
-            setNotification({ message: 'Por favor, preencha o nome e selecione um logótipo.', type: 'error' });
+        if (!sponsorForm.name || (!sponsorLogoFile && !sponsorForm.logoUrl)) {
+            setNotification({ message: 'Por favor, preencha o nome e forneça um logótipo (upload ou URL).', type: 'error' });
             return;
         }
         setIsUploading(true);
+        let logoUrl = sponsorForm.logoUrl; 
+
         try {
-            const logoRef = ref(storage, `public/${appId}/sponsorLogos/${Date.now()}_${sponsorLogoFile.name}`);
-            const uploadTask = await uploadBytes(logoRef, sponsorLogoFile);
-            const downloadURL = await getDownloadURL(uploadTask.ref);
+            if (sponsorLogoFile) {
+                const logoRef = ref(storage, `public/${appId}/sponsorLogos/${Date.now()}_${sponsorLogoFile.name}`);
+                const uploadTask = await uploadBytes(logoRef, sponsorLogoFile);
+                logoUrl = await getDownloadURL(uploadTask.ref);
+            }
             
             const sponsorsColRef = collection(db, `/artifacts/${appId}/public/data/sponsors`);
-            await addDoc(sponsorsColRef, { name: sponsorForm.name, logo: downloadURL });
+            await addDoc(sponsorsColRef, { name: sponsorForm.name, logo: logoUrl });
             
             setNotification({ message: 'Patrocinador adicionado!', type: 'success' });
-            setSponsorForm({ name: '' });
+            setSponsorForm({ name: '', logoUrl: '' });
             setSponsorLogoFile(null);
             setSponsorLogoPreview('');
             const fileInput = document.getElementById('sponsor-logo-upload');
@@ -522,6 +526,9 @@ const AdminPage = ({ db, storage, teamHierarchy, sponsors, achievements, siteSet
                                             </label>
                                         </div>
                                     </div>
+                                    <div className="lg:col-span-3">
+                                       <InputField name="img" type="text" placeholder="Ou cole o URL da foto" Icon={LinkIcon} value={memberForm.img} onChange={handleMemberChange} />
+                                    </div>
                                     <div className="flex gap-2"><button type="submit" disabled={isUploading} className="flex-grow bg-[#d4982c] hover:bg-[#b58426] disabled:bg-gray-400 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center"><Save className="mr-2" />{isUploading ? 'A guardar...' : (editingId ? 'Salvar Alterações' : 'Adicionar Membro')}</button>{editingId && <button type="button" onClick={resetForm} className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg">Cancelar</button>}</div>
                                 </form>
                             </div>
@@ -573,6 +580,7 @@ const AdminPage = ({ db, storage, teamHierarchy, sponsors, achievements, siteSet
                             <h2 className="text-2xl font-bold mb-4 text-[#d4982c]">Gerir Patrocinadores</h2>
                             <form onSubmit={handleSponsorSubmit} className="space-y-4">
                                 <InputField name="name" type="text" placeholder="Nome do Patrocinador" Icon={Briefcase} value={sponsorForm.name} onChange={handleSponsorChange} />
+                                <InputField name="logoUrl" type="text" placeholder="Ou cole o URL do Logótipo" Icon={LinkIcon} value={sponsorForm.logoUrl} onChange={handleSponsorChange} />
                                 <div>
                                     <label htmlFor="sponsor-logo-upload" className="block text-sm font-medium text-gray-700 mb-2">Logótipo do Patrocinador</label>
                                     <div className="mt-1 flex items-center gap-4">
@@ -689,6 +697,7 @@ export default function App() {
   const [sponsors, setSponsors] = useState([]);
   const [achievements, setAchievements] = useState([]);
   const [siteSettings, setSiteSettings] = useState(blankSiteSettings);
+
 
   // Inicialização do Firebase
   useEffect(() => {
