@@ -1,9 +1,4 @@
-@import "tailwindcss";
-
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@import "tailwindcss";       
 
 @theme inline {
   --color-background: var(--background);
@@ -12,6 +7,10 @@
   --font-mono: var(--font-geist-mono);
 }
 
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
@@ -22,5 +21,24 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans, Arial, Helvetica, sans-serif);
+}
+
+@layer utilities {
+  @keyframes fade-in   { from {opacity:0} to {opacity:1} }
+  @keyframes scale-up  { from {opacity:0;transform:scale(.95)} to {opacity:1;transform:scale(1)} }
+  @keyframes fade-in-up{
+    from {opacity:0;transform:translateY(20px)}
+    to   {opacity:1;transform:translateY(0)}
+  }
+  @keyframes infinite-scroll{
+    from {transform:translateX(0)}
+    to   {transform:translateX(-100%)}
+  }
+
+  .animate-fade-in        { animation: fade-in .3s ease-out forwards }
+  .animate-scale-up       { animation: scale-up .3s ease-out forwards }
+  .animate-fade-in-up     { animation: fade-in-up .8s ease-out .2s forwards }
+  .animate-infinite-scroll{ animation: infinite-scroll linear infinite }
+  .text-shadow-lg         { text-shadow:0 2px 8px rgba(0,0,0,.5) }
 }
