@@ -13,7 +13,7 @@ const blankTeamHierarchy = {
   members: []
 };
 const blankSiteSettings = {
-    heroImageUrl: './src/assets/principal/capa.jpeg',
+    heroImageUrl: '@public/capa.jpeg',
     participations: 0
 };
 
