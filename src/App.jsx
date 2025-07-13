@@ -1,36 +1,41 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { initializeApp } from 'firebase/app';
+import { initializeApp, getApps } from 'firebase/app';
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { getFirestore, doc, onSnapshot, setDoc, addDoc, deleteDoc, collection, getDocs, query, limit } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { Shield, Users, LogIn, LogOut, User, Lock, Twitter, Instagram, Facebook, Trophy, Star, Award, Menu, X, ChevronLeft, ChevronRight, Briefcase, Crown, UserCheck, Hash, GraduationCap, PlusCircle, Trash2, Edit, Save, LayoutDashboard, Image as ImageIcon, Link as LinkIcon, AlertCircle, CheckCircle, XCircle, UploadCloud, Settings, Building, ChevronDown, MapPin, Mail } from 'lucide-react';
-
+import './styles/App.css';
 import { appId, firebaseConfig } from './firebase';
-// --- ESTRUTURAS DE DADOS INICIAIS (para quando a base de dados está vazia) ---
+
 const blankTeamHierarchy = {
   captain: null,
   departments: [],
-  others: []
+  members: []
 };
 const blankSiteSettings = {
-    heroImageUrl: 'https://placehold.co/1600x900/e0e0e0/cccccc?text=Adicione+uma+imagem+no+Painel+Admin',
+    heroImageUrl: './src/assets/principal/capa.jpeg',
     participations: 0
 };
 
 // --- COMPONENTES DE UI (Navbar, Modals, etc.) ---
-const LoadingScreen = () => ( <div className="fixed inset-0 bg-white/70 backdrop-blur-sm flex items-center justify-center z-[100]"><div className="flex flex-col items-center"><img src="https://raw.githubusercontent.com/Carancho-Aerodesign/CaranchoWebsite/v1.3/src/assets/logoWithLabel.png" alt="Logo Carancho Aerodesign" className="h-16 animate-pulse" /><p className="mt-4 text-lg text-gray-700">A carregar...</p></div></div> );
+const LoadingScreen = () => ( <div className="fixed inset-0 bg-white/70 backdrop-blur-sm flex items-center justify-center z-[100]"><div className="flex flex-col items-center"><img src="https://raw.githubusercontent.com/Carancho-Aerodesign/CaranchoWebsite/v1.3/src/assets/logoWithLabel.png" alt="Logo Carancho Aerodesign" className="h-16 animate-pulse" /></div></div> );
 const Navbar = ({ currentPage, setCurrentPage, user, auth }) => { const [isMenuOpen, setIsMenuOpen] = useState(false); const handleNavClick = (page) => { setIsMenuOpen(false); setCurrentPage(page); }; const handleLogout = async () => { if(auth) { await signOut(auth); } handleNavClick('home'); }; return ( <nav className="bg-white/80 backdrop-blur-lg fixed top-0 left-0 right-0 z-40 border-b border-gray-200"><div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"><div className="flex items-center justify-between h-20"><div className="flex-shrink-0 flex items-center cursor-pointer" onClick={() => handleNavClick('home')}><img className="h-10" src="https://raw.githubusercontent.com/Carancho-Aerodesign/CaranchoWebsite/v1.3/src/assets/logoWithLabel.png" alt="Logo Carancho Aerodesign" /></div><div className="hidden md:block"><div className="ml-10 flex items-baseline space-x-2"><NavItem onClick={() => handleNavClick('home')} active={currentPage === 'home'}>Início</NavItem><NavItem onClick={() => handleNavClick('about')} active={currentPage === 'about'}>Sobre Nós</NavItem>{user && <NavItem onClick={() => handleNavClick('admin')} active={currentPage === 'admin'}>Painel Admin</NavItem>}</div></div><div className="flex items-center"><div className="hidden md:block">{user ? <LogoutButton onClick={handleLogout} /> : <LoginButton onClick={() => handleNavClick('login')} />}</div><div className="md:hidden"><button onClick={() => setIsMenuOpen(!isMenuOpen)} className="p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100">{isMenuOpen ? <X size={24} /> : <Menu size={24} />}</button></div></div></div></div>{isMenuOpen && (<div className="md:hidden bg-white border-t border-gray-200"><div className="px-2 pt-2 pb-3 space-y-1 sm:px-3"><NavItemMobile onClick={() => handleNavClick('home')} active={currentPage === 'home'}>Início</NavItemMobile><NavItemMobile onClick={() => handleNavClick('about')} active={currentPage === 'about'}>Sobre Nós</NavItemMobile>{user && <NavItemMobile onClick={() => handleNavClick('admin')} active={currentPage === 'admin'}>Painel Admin</NavItemMobile>}</div><div className="p-4 border-t border-gray-200">{user ? <LogoutButton onClick={handleLogout} fullWidth /> : <LoginButton onClick={() => handleNavClick('login')} fullWidth />}</div></div>)}</nav> );};
 const NavItem = ({ onClick, children, active }) => (<a href="#" onClick={(e) => { e.preventDefault(); onClick(); }} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors duration-300 ${active ? 'bg-[#d4982c] text-white' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'}`}>{children}</a>);
 const NavItemMobile = ({ onClick, children, active }) => (<a href="#" onClick={(e) => { e.preventDefault(); onClick(); }} className={`block px-3 py-2 rounded-md text-base font-medium transition-colors duration-300 ${active ? 'bg-[#d4982c] text-white' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'}`}>{children}</a>);
 const LoginButton = ({ onClick, fullWidth = false }) => (<button onClick={onClick} className={`bg-[#d4982c] hover:bg-[#b58426] text-white font-semibold py-2 px-5 rounded-lg flex items-center justify-center transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-amber-500/50 ${fullWidth ? 'w-full' : ''}`}><LogIn className="h-5 w-5 mr-2" />Login</button>);
 const LogoutButton = ({ onClick, fullWidth = false }) => (<button onClick={onClick} className={`bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-5 rounded-lg flex items-center justify-center transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-red-500/50 ${fullWidth ? 'w-full' : ''}`}><LogOut className="h-5 w-5 mr-2" />Logout</button>);
-const TeamMemberModal = ({ member, onClose }) => { if (!member) return null; const { name, role, department, age, course, img } = member; return ( <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in" onClick={onClose}><div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-auto border border-gray-200 animate-scale-up flex flex-col md:flex-row overflow-hidden" onClick={(e) => e.stopPropagation()}><div className="md:w-2/5 flex-shrink-0 bg-gray-100">{img ? (<img src={img} alt={name} className="w-full h-48 md:h-full object-cover" />) : (<div className="w-full h-48 md:h-full flex items-center justify-center"><User size={96} className="text-gray-400" /></div>)}</div><div className="p-6 flex flex-col flex-grow text-gray-800"><h2 className="text-3xl font-bold text-[#d4982c] mb-4">{name}</h2><div className="space-y-3 text-gray-600 flex-grow"><div className="flex items-center"><Briefcase size={16} className="mr-3 text-[#d4982c] flex-shrink-0" /><span>{role}</span></div>{department && <div className="flex items-center"><Users size={16} className="mr-3 text-[#d4982c] flex-shrink-0" /><span>{department}</span></div>}{age && <div className="flex items-center"><Hash size={16} className="mr-3 text-[#d4982c] flex-shrink-0" /><span>{age} anos</span></div>}{course && <div className="flex items-center"><GraduationCap size={16} className="mr-3 text-[#d4982c] flex-shrink-0" /><span>{course}</span></div>}</div><button onClick={onClose} className="mt-6 w-full md:w-auto self-end bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg transition-colors">Fechar</button></div><button onClick={onClose} className="absolute top-3 right-3 bg-white/50 p-1.5 rounded-full text-gray-800 hover:bg-white/80 transition-colors md:hidden"><X size={20} /></button></div></div> );};
-const MemberCard = ({ member, departmentName, onCardClick }) => { const isManager = member.role === 'Gerente'; const isCaptain = member.role === 'Capitão'; const Icon = isCaptain ? Crown : (isManager ? UserCheck : User); return (<div className="text-center group cursor-pointer" onClick={() => onCardClick({ ...member, department: departmentName })}><div className={`relative w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden mx-auto transform transition-all duration-300 group-hover:scale-105 shadow-lg ring-2 ${isCaptain ? 'ring-[#d4982c]' : 'ring-gray-300 group-hover:ring-[#d4982c]'}`}>{member.img ? (<img src={member.img} alt={member.name} className="w-full h-full object-cover" />) : (<div className="w-full h-full flex items-center justify-center bg-gray-200"><Icon size={isCaptain ? 40 : 32} className="text-gray-500" /></div>)}</div><h4 className="mt-3 text-base sm:text-lg font-bold text-gray-900">{member.name}</h4><p className={`text-sm font-semibold text-[#d4982c]`}>{member.role}</p></div>);};
+const TeamMemberModal = ({ member, onClose }) => { if (!member) return null; const { name, assignments, generalRoles, age, course, img } = member; return ( <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in" onClick={onClose}><div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-auto border border-gray-200 animate-scale-up flex flex-col md:flex-row overflow-hidden" onClick={(e) => e.stopPropagation()}><div className="md:w-2/5 flex-shrink-0 bg-gray-100">{img ? (<img src={img} alt={name} className="w-full h-48 md:h-full object-cover" />) : (<div className="w-full h-48 md:h-full flex items-center justify-center"><User size={96} className="text-gray-400" /></div>)}</div><div className="p-6 flex flex-col flex-grow text-gray-800"><h2 className="text-3xl font-bold text-[#d4982c] mb-4">{name}</h2><div className="space-y-3 text-gray-600 flex-grow">{generalRoles && generalRoles.length > 0 && <div className="flex items-center"><Briefcase size={16} className="mr-3 text-[#d4982c] flex-shrink-0" /><span>{generalRoles.join(', ')}</span></div>}{assignments && assignments.length > 0 && <div className="flex items-start"><Users size={16} className="mr-3 mt-1 text-[#d4982c] flex-shrink-0" /><div>{assignments.map(a => <div key={a.department}>{a.department}: <span className="font-semibold">{a.role}</span></div>)}</div></div>}{age && <div className="flex items-center"><Hash size={16} className="mr-3 text-[#d4982c] flex-shrink-0" /><span>{age} anos</span></div>}{course && <div className="flex items-center"><GraduationCap size={16} className="mr-3 text-[#d4982c] flex-shrink-0" /><span>{course}</span></div>}</div><button onClick={onClose} className="mt-6 w-full md:w-auto self-end bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg transition-colors">Fechar</button></div><button onClick={onClose} className="absolute top-3 right-3 bg-white/50 p-1.5 rounded-full text-gray-800 hover:bg-white/80 transition-colors md:hidden"><X size={20} /></button></div></div> );};
+const MemberCard = ({ member, onCardClick, displayRole }) => { const isCaptain = member.generalRoles?.includes('Capitão'); const Icon = isCaptain ? Crown : User; return (<div className="text-center group cursor-pointer" onClick={() => onCardClick(member)}><div className={`relative w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden mx-auto transform transition-all duration-300 group-hover:scale-105 shadow-lg ring-2 ${isCaptain ? 'ring-[#d4982c]' : 'ring-gray-300 group-hover:ring-[#d4982c]'}`}>{member.img ? (<img src={member.img} alt={member.name} className="w-full h-full object-cover" />) : (<div className="w-full h-full flex items-center justify-center bg-gray-200"><Icon size={isCaptain ? 40 : 32} className="text-gray-500" /></div>)}</div><h4 className="mt-3 text-base sm:text-lg font-bold text-gray-900">{member.name}</h4><p className={`text-sm font-semibold text-[#d4982c]`}>{displayRole}</p></div>);};
 const TeamHierarchySection = ({ teamHierarchy }) => {
     const [selectedMember, setSelectedMember] = useState(null);
-    if (!teamHierarchy || !teamHierarchy.captain) {
-        return <div className="text-center text-gray-500 py-10 max-w-2xl mx-auto">A equipa ainda não foi formada. Adicione um capitão e membros no painel de administração para começar.</div>;
+    
+    if (!teamHierarchy || !teamHierarchy.members || teamHierarchy.members.length === 0) {
+        return <div className="text-center text-gray-500 py-10 max-w-2xl mx-auto">A equipa ainda não foi formada. Adicione membros no painel de administração para começar.</div>;
     }
+
+    const captain = teamHierarchy.members.find(m => m.generalRoles?.includes('Capitão'));
+    const supportMembers = teamHierarchy.members.filter(m => m.generalRoles?.some(r => ['Piloto', 'Adm'].includes(r)) && !m.generalRoles.includes('Capitão'));
+
     return (
         <>
             <TeamMemberModal member={selectedMember} onClose={() => setSelectedMember(null)} />
@@ -38,24 +43,33 @@ const TeamHierarchySection = ({ teamHierarchy }) => {
                 <div className="text-center">
                     <h2 className="text-3xl md:text-4xl font-bold text-[#d4982c]">Nossa Estrutura</h2>
                 </div>
-                <div className="flex justify-center">
-                    <MemberCard member={teamHierarchy.captain} onCardClick={setSelectedMember} />
-                </div>
+                {captain && (
+                    <div className="flex justify-center">
+                        <MemberCard member={captain} onCardClick={setSelectedMember} displayRole="Capitão" />
+                    </div>
+                )}
                 <div className="space-y-12">
-                    {teamHierarchy.departments.map(dept => (
-                        <div key={dept.name} className="bg-white p-6 rounded-xl border border-gray-200 shadow-md">
-                            <h3 className="text-2xl font-bold text-center mb-6 text-gray-800">{dept.name}</h3>
-                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-x-4 gap-y-8 justify-items-center">
-                                {dept.manager && <MemberCard member={dept.manager} departmentName={dept.name} onCardClick={setSelectedMember} />}
-                                {dept.members.map(member => <MemberCard key={member.id} member={member} departmentName={dept.name} onCardClick={setSelectedMember} />)}
+                    {teamHierarchy.departments.map(dept => {
+                        const departmentMembers = teamHierarchy.members.filter(m => m.assignments?.some(a => a.department === dept.name));
+                        if (departmentMembers.length === 0) return null;
+
+                        return (
+                            <div key={dept.id} className="bg-white p-6 rounded-xl border border-gray-200 shadow-md">
+                                <h3 className="text-2xl font-bold text-center mb-6 text-gray-800">{dept.name}</h3>
+                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-x-4 gap-y-8 justify-items-center">
+                                    {departmentMembers.map(member => {
+                                        const assignment = member.assignments.find(a => a.department === dept.name);
+                                        return <MemberCard key={member.id} member={member} onCardClick={setSelectedMember} displayRole={assignment.role} />
+                                    })}
+                                </div>
                             </div>
-                        </div>
-                    ))}
-                    {teamHierarchy.others.length > 0 && (
+                        )
+                    })}
+                     {supportMembers.length > 0 && (
                         <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-md">
                             <h3 className="text-2xl font-bold text-center mb-6 text-gray-800">Funções de Suporte</h3>
                             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-x-4 gap-y-8 justify-items-center">
-                                {teamHierarchy.others.map(member => <MemberCard key={member.id} member={member} departmentName="Suporte" onCardClick={setSelectedMember} />)}
+                                {supportMembers.map(member => <MemberCard key={member.id} member={member} onCardClick={setSelectedMember} displayRole={member.generalRoles.filter(r => r !== 'Capitão').join(', ')} />)}
                             </div>
                         </div>
                     )}
@@ -93,13 +107,9 @@ const Notification = ({ notification, onDismiss }) => {
 };
 
 // --- PÁGINAS ---
-const HomePage = ({ teamHierarchy, sponsors, siteSettings, achievements }) => (<div className="space-y-24 md:space-y-32 mb-24 md:mb-32"><div className="relative h-[80vh] flex items-center justify-center text-center -mt-20 px-4"><div className="absolute inset-0 w-full h-full bg-cover bg-center" style={{ backgroundImage: `url('${siteSettings.heroImageUrl}')` }}></div><div className="absolute inset-0 bg-black/60 z-10"></div><div className="relative z-20 animate-fade-in-up"><h1 className="text-4xl sm:text-5xl md:text-7xl font-extrabold tracking-tighter mb-4 text-shadow-lg text-white">Carancho Aerodesign</h1></div></div><SponsorsCarousel sponsors={sponsors} /><section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"><div className="text-center"><h2 className="text-3xl md:text-4xl font-bold text-[#d4982c]">Nossas Conquistas</h2></div><div className="mt-12 grid gap-8 sm:grid-cols-1 md:grid-cols-3">{achievements.length > 0 ? achievements.map(ach => (<AchievementCard key={ach.id} Icon={Trophy} title={ach.title} description={ach.description}/>)) : <p className="col-span-3 text-center text-gray-500">Nenhuma conquista adicionada ainda.</p>}</div></section><TeamHierarchySection teamHierarchy={teamHierarchy} /></div>);
+const HomePage = ({ teamHierarchy, sponsors, siteSettings, achievements }) => (<div className="space-y-24 md:space-y-32 mb-24 md:mb-32"><div className="relative h-[80vh] flex items-center justify-center text-center -mt-20 px-4"><div className="absolute inset-0 w-full h-full bg-cover bg-center" style={{ backgroundImage: `url('${siteSettings.heroImageUrl}')` }}></div><div className="absolute inset-0 bg-black/60 z-10"></div><div className="relative z-20 animate-fade-in-up"><h1 className="font-poppins text-4xl sm:text-5xl md:text-7xl font-extrabold tracking-tighter mb-4 text-shadow-lg text-white">Carancho Aerodesign</h1></div></div><SponsorsCarousel sponsors={sponsors} /><section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"><div className="text-center"><h2 className="text-3xl md:text-4xl font-bold text-[#d4982c]">Nossas Conquistas</h2></div><div className="mt-12 grid gap-8 sm:grid-cols-1 md:grid-cols-3">{achievements.length > 0 ? achievements.map(ach => (<AchievementCard key={ach.id} Icon={Trophy} title={ach.title} description={ach.description}/>)) : <p className="col-span-3 text-center text-gray-500">Nenhuma conquista adicionada ainda.</p>}</div></section><TeamHierarchySection teamHierarchy={teamHierarchy} /></div>);
 const AboutPage = ({ teamHierarchy, siteSettings }) => {
-    const memberCount = teamHierarchy 
-        ? (teamHierarchy.captain ? 1 : 0) + 
-          teamHierarchy.departments.reduce((acc, dept) => acc + (dept.manager ? 1 : 0) + dept.members.length, 0) +
-          (teamHierarchy.others?.length || 0)
-        : 0;
+    const memberCount = teamHierarchy?.members?.length || 0;
 
     return (
         <div className="max-w-4xl mx-auto py-16 px-4 sm:px-6 lg:px-8 animate-fade-in-up">
@@ -259,7 +269,7 @@ const AdminSidebar = ({ activeSection, setSection }) => (
 // --- PÁGINA DE ADMINISTRAÇÃO ---
 const AdminPage = ({ db, storage, teamHierarchy, sponsors, achievements, siteSettings, setNotification }) => {
     const [adminSection, setAdminSection] = useState('members');
-    const emptyForm = { id: null, name: '', role: 'Membro', department: teamHierarchy?.departments[0]?.name || '', age: '', course: '', img: '' };
+    const emptyForm = { id: null, name: '', age: '', course: '', img: '', generalRoles: [], assignments: [] };
     const [memberForm, setMemberForm] = useState(emptyForm);
     const [editingId, setEditingId] = useState(null);
     const [newDepartmentName, setNewDepartmentName] = useState('');
@@ -273,18 +283,43 @@ const AdminPage = ({ db, storage, teamHierarchy, sponsors, achievements, siteSet
     const [sponsorLogoFile, setSponsorLogoFile] = useState(null);
     const [sponsorLogoPreview, setSponsorLogoPreview] = useState('');
 
-    useEffect(() => {
-        if (teamHierarchy) {
-            setMemberForm(prev => ({...prev, department: prev.department || teamHierarchy.departments[0]?.name || ''}))
-        }
-    }, [teamHierarchy]);
-    
+    const availableGeneralRoles = ['Capitão', 'Piloto', 'Adm'];
+    const availableDepartmentRoles = ['Membro', 'Gerente'];
+
     useEffect(() => {
         setLocalSettings(siteSettings);
     }, [siteSettings]);
 
     const handleMemberChange = (e) => setMemberForm({ ...memberForm, [e.target.name]: e.target.value });
     
+    const handleGeneralRoleChange = (e) => {
+        const { value, checked } = e.target;
+        setMemberForm(prev => {
+            const currentValues = prev.generalRoles || [];
+            if (checked) {
+                return { ...prev, generalRoles: [...currentValues, value] };
+            } else {
+                return { ...prev, generalRoles: currentValues.filter(item => item !== value) };
+            }
+        });
+    };
+
+    const handleAssignmentChange = (index, field, value) => {
+        const newAssignments = [...(memberForm.assignments || [])];
+        newAssignments[index][field] = value;
+        setMemberForm(prev => ({ ...prev, assignments: newAssignments }));
+    };
+
+    const addAssignment = () => {
+        setMemberForm(prev => ({ ...prev, assignments: [...(prev.assignments || []), { department: '', role: 'Membro' }] }));
+    };
+
+    const removeAssignment = (index) => {
+        const newAssignments = [...(memberForm.assignments || [])];
+        newAssignments.splice(index, 1);
+        setMemberForm(prev => ({ ...prev, assignments: newAssignments }));
+    };
+
     const resetForm = () => {
         setMemberForm(emptyForm);
         setEditingId(null);
@@ -307,30 +342,31 @@ const AdminPage = ({ db, storage, teamHierarchy, sponsors, achievements, siteSet
         setIsUploading(true);
         const memberId = editingId || Date.now();
         let memberData = { ...memberForm, id: memberId, age: Number(memberForm.age) || 0 };
+        
         try {
             if (memberImageFile) {
                 const imageRef = ref(storage, `public/${appId}/memberImages/${memberId}.jpg`);
                 const uploadTask = await uploadBytes(imageRef, memberImageFile);
                 memberData.img = await getDownloadURL(uploadTask.ref);
             }
+
             const newHierarchy = JSON.parse(JSON.stringify(teamHierarchy));
-            const removeMemberById = (id) => {
-                if (newHierarchy.captain?.id === id) newHierarchy.captain = null;
-                newHierarchy.departments.forEach(dept => {
-                    if (dept.manager?.id === id) dept.manager = null;
-                    dept.members = dept.members.filter(m => m.id !== id);
+            
+            if (memberData.generalRoles?.includes('Capitão')) {
+                newHierarchy.members.forEach(member => {
+                    if (member.id !== memberId && member.generalRoles?.includes('Capitão')) {
+                        member.generalRoles = member.generalRoles.filter(r => r !== 'Capitão');
+                    }
                 });
-                newHierarchy.others = newHierarchy.others.filter(m => m.id !== id);
-            };
-            if (editingId) { removeMemberById(editingId); }
-            if (memberData.role === 'Capitão') {
-                if (newHierarchy.captain && newHierarchy.captain.id !== memberData.id) { newHierarchy.others.push({...newHierarchy.captain, role: 'Membro'}); }
-                newHierarchy.captain = memberData;
-            } else if (memberData.role === 'Gerente') {
-                const dept = newHierarchy.departments.find(d => d.name === memberData.department);
-                if (dept) { if(dept.manager && dept.manager.id !== memberData.id) { dept.members.push({...dept.manager, role: 'Membro'}); } dept.manager = memberData; }
-            } else if (memberData.department === 'Suporte') { newHierarchy.others.push(memberData); } 
-            else { const dept = newHierarchy.departments.find(d => d.name === memberData.department); if (dept) dept.members.push(memberData); }
+            }
+
+            const memberIndex = newHierarchy.members.findIndex(m => m.id === editingId);
+            if (memberIndex > -1) {
+                newHierarchy.members[memberIndex] = memberData;
+            } else {
+                newHierarchy.members.push(memberData);
+            }
+            
             const hierarchyRef = doc(db, `/artifacts/${appId}/public/data/team/hierarchy`);
             await setDoc(hierarchyRef, newHierarchy, { merge: true });
             setNotification({ message: editingId ? 'Membro atualizado!' : 'Membro adicionado!', type: 'success' });
@@ -341,9 +377,9 @@ const AdminPage = ({ db, storage, teamHierarchy, sponsors, achievements, siteSet
         } finally { setIsUploading(false); }
     };
 
-    const handleEditMember = (member, departmentName) => {
+    const handleEditMember = (member) => {
         setEditingId(member.id);
-        setMemberForm({ ...member, department: departmentName || 'Suporte' });
+        setMemberForm({ ...member });
         setMemberImagePreview(member.img || '');
         setMemberImageFile(null);
         setAdminSection('members');
@@ -351,29 +387,26 @@ const AdminPage = ({ db, storage, teamHierarchy, sponsors, achievements, siteSet
     };
     
     const handleRemoveMember = async (idToRemove) => {
-        if (teamHierarchy.captain?.id === idToRemove) { setNotification({ message: "Não pode remover o capitão. Substitua-o primeiro.", type: 'error' }); return; }
         const newHierarchy = JSON.parse(JSON.stringify(teamHierarchy));
-        newHierarchy.departments.forEach(dept => { if (dept.manager?.id === idToRemove) dept.manager = null; dept.members = dept.members.filter(m => m.id !== idToRemove); });
-        newHierarchy.others = newHierarchy.others.filter(m => m.id !== idToRemove);
+        newHierarchy.members = newHierarchy.members.filter(m => m.id !== idToRemove);
         try { const hierarchyRef = doc(db, `/artifacts/${appId}/public/data/team/hierarchy`); await setDoc(hierarchyRef, newHierarchy); setNotification({ message: 'Membro removido.', type: 'success' }); } catch (error) { console.error("Erro ao remover membro:", error); setNotification({ message: 'Erro ao remover membro.', type: 'error' }); }
     };
 
     const handleAddDepartment = async () => {
         if (!newDepartmentName || teamHierarchy.departments.some(d => d.name === newDepartmentName)) { setNotification({ message: 'Nome de departamento inválido ou já existente.', type: 'error' }); return; }
         const newHierarchy = JSON.parse(JSON.stringify(teamHierarchy));
-        newHierarchy.departments.push({ name: newDepartmentName, manager: null, members: [] });
-        try { const hierarchyRef = doc(db, `/artifacts/${appId}/public/data/team/hierarchy`); await setDoc(hierarchyRef, newHierarchy); setNotification({ message: 'Departamento adicionado!', type: 'success' }); setNewDepartmentName(''); } catch (error) { console.error("Erro ao adicionar departamento:", error); setNotification({ message: 'Erro ao adicionar departamento.', type: 'error' }); }
+        newHierarchy.departments.push({ id: Date.now().toString(), name: newDepartmentName });
+        try { const hierarchyRef = doc(db, `/artifacts/${appId}/public/data/team/hierarchy`); await setDoc(hierarchyRef, newHierarchy, {merge: true}); setNotification({ message: 'Departamento adicionado!', type: 'success' }); setNewDepartmentName(''); } catch (error) { console.error("Erro ao adicionar departamento:", error); setNotification({ message: 'Erro ao adicionar departamento.', type: 'error' }); }
     };
 
-    const handleRemoveDepartment = async (deptName) => {
+    const handleRemoveDepartment = async (deptId) => {
         const newHierarchy = JSON.parse(JSON.stringify(teamHierarchy));
-        const deptIndex = newHierarchy.departments.findIndex(d => d.name === deptName);
-        if (deptIndex > -1) {
-            const deptToRemove = newHierarchy.departments[deptIndex];
-            if (deptToRemove.manager || deptToRemove.members.length > 0) { setNotification({ message: 'Esvazie o departamento antes de o remover.', type: 'error' }); return; }
-            newHierarchy.departments.splice(deptIndex, 1);
-            try { const hierarchyRef = doc(db, `/artifacts/${appId}/public/data/team/hierarchy`); await setDoc(hierarchyRef, newHierarchy); setNotification({ message: 'Departamento removido.', type: 'success' }); } catch (error) { console.error("Erro ao remover departamento:", error); setNotification({ message: 'Erro ao remover departamento.', type: 'error' }); }
-        }
+        newHierarchy.departments = newHierarchy.departments.filter(d => d.id !== deptId);
+        // Optional: Remove department from all members
+        newHierarchy.members.forEach(member => {
+            member.assignments = member.assignments.filter(a => a.department !== teamHierarchy.departments.find(d => d.id === deptId).name);
+        });
+        try { const hierarchyRef = doc(db, `/artifacts/${appId}/public/data/team/hierarchy`); await setDoc(hierarchyRef, newHierarchy); setNotification({ message: 'Departamento removido.', type: 'success' }); } catch (error) { console.error("Erro ao remover departamento:", error); setNotification({ message: 'Erro ao remover departamento.', type: 'error' }); }
     };
 
     const handleSponsorChange = (e) => setSponsorForm({ ...sponsorForm, [e.target.name]: e.target.value });
@@ -531,21 +564,42 @@ const AdminPage = ({ db, storage, teamHierarchy, sponsors, achievements, siteSet
                                         <InputField name="name" type="text" placeholder="Nome" Icon={User} value={memberForm.name} onChange={handleMemberChange} />
                                         <InputField name="age" type="number" placeholder="Idade" Icon={Hash} value={memberForm.age} onChange={handleMemberChange} />
                                         <InputField name="course" type="text" placeholder="Curso/Formação" Icon={GraduationCap} value={memberForm.course} onChange={handleMemberChange} />
-                                        <SelectField name="role" value={memberForm.role} onChange={handleMemberChange} Icon={Briefcase}>
-                                            <option>Membro</option><option>Gerente</option><option>Capitão</option><option>Adm</option><option>Piloto</option>
-                                        </SelectField>
-                                        <SelectField name="department" value={memberForm.department} onChange={handleMemberChange} Icon={Users}>
-                                            {teamHierarchy.departments.map(d => <option key={d.name}>{d.name}</option>)}<option value="Suporte">Suporte</option>
-                                        </SelectField>
-                                        <div className="flex items-center gap-4 lg:col-span-1">
-                                            {memberImagePreview && <img src={memberImagePreview} alt="Preview" className="w-16 h-16 rounded-full object-cover border-2 border-[#d4982c]"/>}
-                                            <label htmlFor="member-image-upload" className="flex-grow relative cursor-pointer bg-gray-100 rounded-md font-medium text-[#d4982c] hover:text-[#b58426] p-3 text-center border border-gray-300 hover:border-gray-400">
-                                                <ImageIcon className="mx-auto mb-1"/><span>{memberImageFile ? 'Alterar' : 'Foto'}</span><input id="member-image-upload" type="file" className="sr-only" onChange={handleMemberImageSelect} accept="image/*" />
-                                            </label>
+                                    </div>
+                                    <div className="space-y-4">
+                                        <h4 className="text-sm font-medium text-gray-700">Atribuições em Departamentos</h4>
+                                        {memberForm.assignments?.map((assignment, index) => (
+                                            <div key={index} className="flex items-center gap-2 p-2 bg-gray-50 rounded-md">
+                                                <SelectField name="department" value={assignment.department} onChange={(e) => handleAssignmentChange(index, 'department', e.target.value)} Icon={Building}>
+                                                    <option value="">Selecione Departamento</option>
+                                                    {teamHierarchy.departments.map(d => <option key={d.id} value={d.name}>{d.name}</option>)}
+                                                </SelectField>
+                                                <SelectField name="role" value={assignment.role} onChange={(e) => handleAssignmentChange(index, 'role', e.target.value)} Icon={Briefcase}>
+                                                    {availableDepartmentRoles.map(r => <option key={r}>{r}</option>)}
+                                                </SelectField>
+                                                <button type="button" onClick={() => removeAssignment(index)} className="p-2 text-red-500 hover:text-red-700"><Trash2 size={18}/></button>
+                                            </div>
+                                        ))}
+                                        <button type="button" onClick={addAssignment} className="text-sm font-semibold text-[#d4982c] hover:text-[#b58426] flex items-center gap-1"><PlusCircle size={16}/> Adicionar Atribuição</button>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <h4 className="text-sm font-medium text-gray-700">Funções Gerais</h4>
+                                        <div className="flex flex-wrap gap-4">
+                                            {availableGeneralRoles.map(role => (
+                                                <label key={role} className="flex items-center">
+                                                    <input type="checkbox" name="generalRoles" value={role} checked={memberForm.generalRoles?.includes(role)} onChange={(e) => handleGeneralRoleChange(e)} className="h-4 w-4 rounded border-gray-300 text-[#d4982c] focus:ring-[#d4982c]"/>
+                                                    <span className="ml-2 text-gray-700">{role}</span>
+                                                </label>
+                                            ))}
                                         </div>
                                     </div>
                                     <div className="lg:col-span-3">
                                        <InputField name="img" type="text" placeholder="Ou cole o URL da foto" Icon={LinkIcon} value={memberForm.img} onChange={handleMemberChange} />
+                                    </div>
+                                    <div className="flex items-center gap-4 lg:col-span-1">
+                                        {memberImagePreview && <img src={memberImagePreview} alt="Preview" className="w-16 h-16 rounded-full object-cover border-2 border-[#d4982c]"/>}
+                                        <label htmlFor="member-image-upload" className="flex-grow relative cursor-pointer bg-gray-100 rounded-md font-medium text-[#d4982c] hover:text-[#b58426] p-3 text-center border border-gray-300 hover:border-gray-400">
+                                            <ImageIcon className="mx-auto mb-1"/><span>{memberImageFile ? 'Alterar' : 'Foto'}</span><input id="member-image-upload" type="file" className="sr-only" onChange={handleMemberImageSelect} accept="image/*" />
+                                        </label>
                                     </div>
                                     <div className="flex gap-2"><button type="submit" disabled={isUploading} className="flex-grow bg-[#d4982c] hover:bg-[#b58426] disabled:bg-gray-400 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center"><Save className="mr-2" />{isUploading ? 'A guardar...' : (editingId ? 'Salvar Alterações' : 'Adicionar Membro')}</button>{editingId && <button type="button" onClick={resetForm} className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg">Cancelar</button>}</div>
                                 </form>
@@ -553,10 +607,10 @@ const AdminPage = ({ db, storage, teamHierarchy, sponsors, achievements, siteSet
                             <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-md">
                                 <h3 className="text-xl font-bold mb-4 text-[#d4982c]">Lista de Membros</h3>
                                 <div className="space-y-2">
-                                    {[teamHierarchy.captain, ...teamHierarchy.departments.flatMap(d => [d.manager, ...d.members]), ...teamHierarchy.others].filter(Boolean).map(member => (
+                                    {teamHierarchy.members.map(member => (
                                         <div key={member.id} className="flex items-center justify-between bg-gray-50 p-3 rounded-lg hover:bg-gray-100 transition-colors">
-                                            <div className="flex items-center gap-3"><img src={member.img || 'https://placehold.co/40x40/e0e0e0/888888?text=?'} alt={member.name} className="w-10 h-10 rounded-full object-cover"/><div><span className="font-semibold text-gray-800">{member.name}</span> - <span className="text-[#d4982c]">{member.role}</span><span className="text-gray-500 text-sm ml-2">({teamHierarchy.departments.find(d => d.members.some(m => m.id === member.id) || d.manager?.id === member.id)?.name || 'Suporte'})</span></div></div>
-                                            <div className="flex items-center gap-2"><button onClick={() => handleEditMember(member, teamHierarchy.departments.find(d => d.members.some(m => m.id === member.id) || d.manager?.id === member.id)?.name || 'Suporte')} className="text-blue-500 hover:text-blue-700 p-2"><Edit size={18}/></button><button onClick={() => handleRemoveMember(member.id)} className="text-red-500 hover:text-red-700 p-2"><Trash2 size={18}/></button></div>
+                                            <div className="flex items-center gap-3"><img src={member.img || 'https://placehold.co/40x40/e0e0e0/888888?text=?'} alt={member.name} className="w-10 h-10 rounded-full object-cover"/><div><span className="font-semibold text-gray-800">{member.name}</span> - <span className="text-[#d4982c]">{[...(member.generalRoles || []), ...(member.assignments || []).map(a => a.role)].join(', ')}</span></div></div>
+                                            <div className="flex items-center gap-2"><button onClick={() => handleEditMember(member)} className="text-blue-500 hover:text-blue-700 p-2"><Edit size={18}/></button><button onClick={() => handleRemoveMember(member.id)} className="text-red-500 hover:text-red-700 p-2"><Trash2 size={18}/></button></div>
                                         </div>
                                     ))}
                                 </div>
@@ -567,7 +621,7 @@ const AdminPage = ({ db, storage, teamHierarchy, sponsors, achievements, siteSet
                         <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-md">
                             <h2 className="text-2xl font-bold mb-4 text-[#d4982c]">Gerir Departamentos</h2>
                             <div className="flex gap-4 mb-6"><InputField name="new_department" type="text" placeholder="Nome do Novo Departamento" Icon={Users} value={newDepartmentName} onChange={(e) => setNewDepartmentName(e.target.value)} /><button onClick={handleAddDepartment} className="bg-[#d4982c] hover:bg-[#b58426] text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center shrink-0"><PlusCircle className="mr-2" />Adicionar</button></div>
-                            <div className="space-y-2">{teamHierarchy.departments.map(dept => (<div key={dept.name} className="flex items-center justify-between bg-gray-50 p-3 rounded-lg hover:bg-gray-100 transition-colors"><span className="text-gray-800">{dept.name}</span><button onClick={() => handleRemoveDepartment(dept.name)} className="text-red-500 hover:text-red-700 p-2"><Trash2 size={18}/></button></div>))}</div>
+                            <div className="space-y-2">{teamHierarchy.departments.map(dept => (<div key={dept.id} className="flex items-center justify-between bg-gray-50 p-3 rounded-lg hover:bg-gray-100 transition-colors"><span className="text-gray-800">{dept.name}</span><button onClick={() => handleRemoveDepartment(dept.id)} className="text-red-500 hover:text-red-700 p-2"><Trash2 size={18}/></button></div>))}</div>
                         </div>
                     )}
                      {adminSection === 'achievements' && (
@@ -718,8 +772,8 @@ export default function App() {
 
   // Inicialização do Firebase
   useEffect(() => {
-    if (Object.keys(firebaseConfig).length > 0 && !auth) {
-      const app = initializeApp(firebaseConfig);
+    if (Object.keys(firebaseConfig).length > 0 && firebaseConfig.apiKey && !auth) {
+      const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
       const firestoreDb = getFirestore(app);
       const firebaseAuth = getAuth(app);
       const firebaseStorage = getStorage(app);
@@ -732,7 +786,8 @@ export default function App() {
         setIsAuthReady(true);
         setIsLoading(false);
       });
-    } else if (Object.keys(firebaseConfig).length === 0) { 
+    } else if (!firebaseConfig.apiKey) {
+        console.error("Firebase API Key is missing. Please check your environment variables.");
         setIsLoading(false);
         setIsAuthReady(true);
     }
@@ -833,7 +888,6 @@ export default function App() {
     </div>
   );
 }
-
 // --- CSS PARA ANIMAÇÕES ---
 const style = document.createElement('style');
 style.textContent = `
