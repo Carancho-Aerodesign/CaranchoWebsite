@@ -3,7 +3,7 @@ import { initializeApp, getApps } from 'firebase/app';
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, updatePassword, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
 import { getFirestore, doc, onSnapshot, setDoc, addDoc, deleteDoc, collection, getDocs, query, limit, updateDoc } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { Shield, Users, LogIn, LogOut, User, Lock, Linkedin, Youtube, Instagram, Facebook, Trophy, Star, Award, Menu, X, ChevronLeft, ChevronRight, Briefcase, Crown, UserCheck, Hash, GraduationCap, PlusCircle, Trash2, Edit, Save, LayoutDashboard, Image as ImageIcon, Link as LinkIcon, AlertCircle, CheckCircle, XCircle, UploadCloud, Settings, Building, ChevronDown, MapPin, Mail, Eye, EyeOff, DollarSign, FileDown, Circle } from 'lucide-react';
+import { Shield, Users, LogIn, LogOut, User, Lock, Instagram, Facebook, Trophy, Star, Award, Menu, X, ChevronLeft, ChevronRight, Briefcase, Crown, UserCheck, Hash, GraduationCap, PlusCircle, Trash2, Edit, Save, LayoutDashboard, Image as ImageIcon, Link as LinkIcon, AlertCircle, CheckCircle, XCircle, UploadCloud, Settings, Building, ChevronDown, MapPin, Mail, Eye, EyeOff, DollarSign, FileDown, Circle } from 'lucide-react';
 
 import './styles/App.css';
 import { appId, firebaseConfig } from './firebase';
@@ -15,11 +15,12 @@ const blankTeamHierarchy = {
 };
 const blankSiteSettings = {
     heroImageUrl: '@public/capa.jpeg',
-    participations: 0
+    participations: 0,
+    monthlyDues: 20
 };
 
 // --- COMPONENTES DE UI (Navbar, Modals, etc.) ---
-const LoadingScreen = () => ( <div className="fixed inset-0 bg-white/70 backdrop-blur-sm flex items-center justify-center z-[100]"><div className="flex flex-col items-center"><img src="https://raw.githubusercontent.com/Carancho-Aerodesign/CaranchoWebsite/v1.3/src/assets/logoWithLabel.png" alt="Logo Carancho Aerodesign" className="h-16 animate-pulse" /></div></div> );
+const LoadingScreen = () => ( <div className="fixed inset-0 bg-white/70 backdrop-blur-sm flex items-center justify-center z-[100]"><div className="flex flex-col items-center"><img src="https://raw.githubusercontent.com/Carancho-Aerodesign/CaranchoWebsite/v1.3/src/assets/logoWithLabel.png" alt="Logo Carancho Aerodesign" className="h-16 animate-pulse" /><p className="mt-4 text-lg text-gray-700">A carregar...</p></div></div> );
 const Navbar = ({ currentPage, setCurrentPage, user, auth }) => { const [isMenuOpen, setIsMenuOpen] = useState(false); const handleNavClick = (page) => { setIsMenuOpen(false); setCurrentPage(page); }; const handleLogout = async () => { if(auth) { await signOut(auth); } handleNavClick('home'); }; return ( <nav className="bg-white/80 backdrop-blur-lg fixed top-0 left-0 right-0 z-40 border-b border-gray-200"><div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"><div className="flex items-center justify-between h-20"><div className="flex-shrink-0 flex items-center cursor-pointer" onClick={() => handleNavClick('home')}><img className="h-10" src="https://raw.githubusercontent.com/Carancho-Aerodesign/CaranchoWebsite/v1.3/src/assets/logoWithLabel.png" alt="Logo Carancho Aerodesign" /></div><div className="hidden md:block"><div className="ml-10 flex items-baseline space-x-2"><NavItem onClick={() => handleNavClick('home')} active={currentPage === 'home'}>Início</NavItem><NavItem onClick={() => handleNavClick('about')} active={currentPage === 'about'}>Sobre Nós</NavItem>{user && <NavItem onClick={() => handleNavClick('admin')} active={currentPage === 'admin'}>Painel Admin</NavItem>}</div></div><div className="flex items-center"><div className="hidden md:block">{user ? <div className="flex items-center gap-4"><span className="text-sm text-gray-600">Olá, {user.email.split('@')[0]}</span><LogoutButton onClick={handleLogout} /></div> : <LoginButton onClick={() => handleNavClick('login')} />}</div><div className="md:hidden"><button onClick={() => setIsMenuOpen(!isMenuOpen)} className="p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100">{isMenuOpen ? <X size={24} /> : <Menu size={24} />}</button></div></div></div></div>{isMenuOpen && (<div className="md:hidden bg-white border-t border-gray-200"><div className="px-2 pt-2 pb-3 space-y-1 sm:px-3"><NavItemMobile onClick={() => handleNavClick('home')} active={currentPage === 'home'}>Início</NavItemMobile><NavItemMobile onClick={() => handleNavClick('about')} active={currentPage === 'about'}>Sobre Nós</NavItemMobile>{user && <NavItemMobile onClick={() => handleNavClick('admin')} active={currentPage === 'admin'}>Painel Admin</NavItemMobile>}</div><div className="p-4 border-t border-gray-200">{user ? <div className="flex flex-col items-start gap-4"><span className="text-sm text-gray-600 px-3">Olá, {user.email.split('@')[0]}</span><LogoutButton onClick={handleLogout} fullWidth /></div> : <LoginButton onClick={() => handleNavClick('login')} fullWidth />}</div></div>)}</nav> );};
 const NavItem = ({ onClick, children, active }) => (<a href="#" onClick={(e) => { e.preventDefault(); onClick(); }} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors duration-300 ${active ? 'bg-[#d4982c] text-white' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'}`}>{children}</a>);
 const NavItemMobile = ({ onClick, children, active }) => (<a href="#" onClick={(e) => { e.preventDefault(); onClick(); }} className={`block px-3 py-2 rounded-md text-base font-medium transition-colors duration-300 ${active ? 'bg-[#d4982c] text-white' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'}`}>{children}</a>);
@@ -454,7 +455,7 @@ const AdminPage = ({ db, storage, teamHierarchy, sponsors, achievements, siteSet
                 await updateDoc(sponsorRef, sponsorData);
                 setNotification({ message: 'Patrocinador atualizado!', type: 'success' });
             } else {
-                const sponsorsColRef = collection(db, `/artifacts/${appId}/public/data/sponsors`);
+                const sponsorsColRef = collection(db, `/artifacts/${appId}/public/data/sponsorships`);
                 await addDoc(sponsorsColRef, sponsorData);
                 setNotification({ message: 'Patrocinador adicionado!', type: 'success' });
             }
@@ -857,8 +858,7 @@ const AdminPage = ({ db, storage, teamHierarchy, sponsors, achievements, siteSet
                             </div>
                             <div className="flex justify-between items-center mb-4">
                                 <select value={financialYear} onChange={(e) => setFinancialYear(Number(e.target.value))} className="rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
-                                    <option>{new Date().getFullYear()}</option>
-                                    <option>{new Date().getFullYear() - 1}</option>
+                                    {Array.from({length: 3}, (_, i) => new Date().getFullYear() - i).map(year => <option key={year} value={year}>{year}</option>)}
                                 </select>
                                 <button onClick={handleExportCSV} className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2"><FileDown size={18}/>Exportar CSV</button>
                             </div>
@@ -922,26 +922,57 @@ const SelectField = ({ name, value, onChange, Icon, children }) => (
         </span>
     </div>
 );
+const LinkedinIcon = (props) => (
+  <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" />
+    <rect x="2" y="9" width="4" height="12" />
+    <circle cx="4" cy="4" r="2" />
+  </svg>
+);
+
+const YoutubeIcon = (props) => (
+  <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21.54 6.22a4.5 4.5 0 0 0-3.18-3.18C16.9 2.5 12 2.5 12 2.5s-4.9 0-6.36.54a4.5 4.5 0 0 0-3.18 3.18C2 7.68 2 12 2 12s0 4.32.54 5.78a4.5 4.5 0 0 0 3.18 3.18C7.1 21.5 12 21.5 12 21.5s4.9 0 6.36-.54a4.5 4.5 0 0 0 3.18-3.18C22 16.32 22 12 22 12s0-4.32-.46-5.78z" />
+    <polygon points="9.5,7.5 15.5,12 9.5,16.5" />
+  </svg>
+);
+
 const Footer = () => (
-    <footer className="bg-[#d4982c] text-white">
-        <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8 text-center">
-            <div className="mb-8 space-y-4 text-sm">
-                <div className="flex items-center justify-center gap-2 text-amber-100 flex-wrap">
-                    <MapPin size={16} className="shrink-0" />
-                    <span>Av. Roraima nº 1000, Cidade Universitária, Bairro Camobi, Santa Maria - RS, 97105-900</span>
+    <footer className="bg-gray-900 text-gray-400">
+        <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                <div className="md:col-span-2 lg:col-span-1">
+                    <img className="h-12 mb-4" src="/logo.png" alt="Logo Carancho Aerodesign" />
+                    <p className="text-sm">Projetando o futuro da aviação, um voo de cada vez.</p>
                 </div>
-                <div className="flex items-center justify-center gap-2 text-amber-100">
-                    <Mail size={16} className="shrink-0" />
-                    <a href="mailto:carancho@ufsm.br" className="hover:text-white transition-colors">carancho@ufsm.br</a>
+
+                <div>
+                    <h3 className="text-lg font-semibold text-white uppercase tracking-wider">Contato</h3>
+                    <div className="mt-4 space-y-4 text-sm">
+                        <div className="flex items-start gap-3">
+                            <MapPin size={18} className="text-[#d4982c] shrink-0 mt-1" />
+                            <span>Av. Roraima nº 1000, Cidade Universitária, Bairro Camobi, Santa Maria - RS, 97105-900</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <Mail size={18} className="text-[#d4982c] shrink-0" />
+                            <a href="mailto:carancho@ufsm.br" className="hover:text-[#d4982c] transition-colors">carancho@ufsm.br</a>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 className="text-lg font-semibold text-white uppercase tracking-wider">Siga-nos</h3>
+                    <div className="flex mt-4 space-x-6">
+                        <a href="https://www.linkedin.com/company/caranchoaerodesign" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-[#d4982c] transition-colors"><span className="sr-only">LinkedIn</span><LinkedinIcon /></a>
+                        <a href="https://www.youtube.com/@CaranchoAer/" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-[#d4982c] transition-colors"><span className="sr-only">YouTube</span><YoutubeIcon /></a>
+                        <a href="https://www.instagram.com/caranchoufsm" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-[#d4982c] transition-colors"><span className="sr-only">Instagram</span><Instagram /></a>
+                        <a href="https://www.facebook.com/caranchoufsm" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-[#d4982c] transition-colors"><span className="sr-only">Facebook</span><Facebook /></a>
+                    </div>
                 </div>
             </div>
-            <div className="flex justify-center space-x-6 mb-8">
-                <a href="https://br.linkedin.com/company/caranchoaerodesign" className="text-amber-100 hover:text-white transition-colors"><Linkedin /></a>
-                <a href="https://www.youtube.com/@CaranchoAer/" className="text-amber-100 hover:text-white transition-colors"><Youtube /></a>
-                <a href="https://www.instagram.com/caranchoufsm" className="text-amber-100 hover:text-white transition-colors"><Instagram /></a>
-                <a href="https://www.facebook.com/caranchoufsm" className="text-amber-100 hover:text-white transition-colors"><Facebook /></a>
+            <div className="mt-12 border-t border-gray-700 pt-8 text-center">
+                <p className="text-base text-gray-400">&copy; {new Date().getFullYear()} Carancho Aerodesign. Todos os direitos reservados.</p>
             </div>
-            <p className="text-base text-amber-100">&copy; {new Date().getFullYear()} Carancho Aerodesign. Todos os direitos reservados.</p>
         </div>
     </footer>
 );
