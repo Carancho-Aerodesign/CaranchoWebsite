@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { initializeApp, getApps } from 'firebase/app';
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, updatePassword, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
-import { getFirestore, doc, onSnapshot, setDoc, addDoc, deleteDoc, collection, getDocs, query, limit, updateDoc } from 'firebase/firestore';
+import { getFirestore, doc, onSnapshot, setDoc, addDoc, deleteDoc, collection, getDocs, query, limit, updateDoc, getDoc } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { Shield, Users, LogIn, LogOut, User, Lock, Instagram, Facebook, Trophy, Star, Award, Menu, X, ChevronLeft, ChevronRight, Briefcase, Crown, UserCheck, Hash, GraduationCap, PlusCircle, Trash2, Edit, Save, LayoutDashboard, Image as ImageIcon, Link as LinkIcon, AlertCircle, CheckCircle, XCircle, UploadCloud, Settings, Building, ChevronDown, MapPin, Mail, Eye, EyeOff, DollarSign, FileDown, Circle } from 'lucide-react';
+import { Shield, Users, LogIn, LogOut, User, Lock, Twitter, Instagram, Facebook, Trophy, Star, Award, Menu, X, ChevronLeft, ChevronRight, Briefcase, Crown, UserCheck, Hash, GraduationCap, PlusCircle, Trash2, Edit, Save, LayoutDashboard, Image as ImageIcon, Link as LinkIcon, AlertCircle, CheckCircle, XCircle, UploadCloud, Settings, Building, ChevronDown, MapPin, Mail, Eye, EyeOff, DollarSign, FileDown, Circle } from 'lucide-react';
 
 import './styles/App.css';
 import { appId, firebaseConfig } from './firebase';
@@ -626,15 +626,15 @@ const AdminPage = ({ db, storage, teamHierarchy, sponsors, achievements, siteSet
         let csvContent = "data:text/csv;charset=utf-8,";
         csvContent += "Tipo,Data,Membro/Patrocinador,Valor\r\n";
 
-        // Dues
-        financials.payments.forEach(p => {
+        const yearlyPayments = financials.payments.filter(p => p.year === financialYear);
+        yearlyPayments.forEach(p => {
             const date = p.datePaid.toDate().toLocaleDateString('pt-BR');
             const member = teamHierarchy.members.find(m => m.id === p.memberId);
             csvContent += `Mensalidade,${date},${member?.name || 'Membro não encontrado'},${p.amount}\r\n`;
         });
 
-        // Sponsorships
-        financials.sponsorships.forEach(s => {
+        const yearlySponsorships = financials.sponsorships.filter(s => s.dateReceived.toDate().getFullYear() === financialYear);
+        yearlySponsorships.forEach(s => {
             const date = s.dateReceived.toDate().toLocaleDateString('pt-BR');
             csvContent += `Patrocínio,${date},${s.name},${s.amount}\r\n`;
         });
@@ -642,14 +642,19 @@ const AdminPage = ({ db, storage, teamHierarchy, sponsors, achievements, siteSet
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement("a");
         link.setAttribute("href", encodedUri);
-        link.setAttribute("download", `financeiro_carancho_${new Date().toISOString().split('T')[0]}.csv`);
+        link.setAttribute("download", `financeiro_carancho_${financialYear}.csv`);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
     };
 
-    const totalDuesPaid = financials.payments.reduce((acc, p) => acc + p.amount, 0);
-    const totalSponsorships = financials.sponsorships.reduce((acc, s) => acc + s.amount, 0);
+    const totalDuesPaidForYear = financials.payments
+        .filter(p => p.year === financialYear)
+        .reduce((acc, p) => acc + p.amount, 0);
+
+    const totalSponsorshipsForYear = financials.sponsorships
+        .filter(s => s.dateReceived.toDate().getFullYear() === financialYear)
+        .reduce((acc, s) => acc + s.amount, 0);
     
     if (!teamHierarchy) return <LoadingScreen />;
 
@@ -852,9 +857,9 @@ const AdminPage = ({ db, storage, teamHierarchy, sponsors, achievements, siteSet
                         <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-md">
                             <h2 className="text-2xl font-bold mb-4 text-[#d4982c]">Gestão Financeira</h2>
                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 text-center">
-                                <div className="p-4 bg-green-100 rounded-lg"><p className="text-sm text-green-700">Total Arrecadado (Mensalidades)</p><p className="text-2xl font-bold text-green-800">R$ {totalDuesPaid.toFixed(2)}</p></div>
-                                <div className="p-4 bg-blue-100 rounded-lg"><p className="text-sm text-blue-700">Total Arrecadado (Patrocínios)</p><p className="text-2xl font-bold text-blue-800">R$ {totalSponsorships.toFixed(2)}</p></div>
-                                <div className="p-4 bg-amber-100 rounded-lg"><p className="text-sm text-amber-700">Total Geral</p><p className="text-2xl font-bold text-amber-800">R$ {(totalDuesPaid + totalSponsorships).toFixed(2)}</p></div>
+                                <div className="p-4 bg-green-100 rounded-lg"><p className="text-sm text-green-700">Total Arrecadado (Mensalidades)</p><p className="text-2xl font-bold text-green-800">R$ {totalDuesPaidForYear.toFixed(2)}</p></div>
+                                <div className="p-4 bg-blue-100 rounded-lg"><p className="text-sm text-blue-700">Total Arrecadado (Patrocínios)</p><p className="text-2xl font-bold text-blue-800">R$ {totalSponsorshipsForYear.toFixed(2)}</p></div>
+                                <div className="p-4 bg-amber-100 rounded-lg"><p className="text-sm text-amber-700">Total Geral</p><p className="text-2xl font-bold text-amber-800">R$ {(totalDuesPaidForYear + totalSponsorshipsForYear).toFixed(2)}</p></div>
                             </div>
                             <div className="flex justify-between items-center mb-4">
                                 <select value={financialYear} onChange={(e) => setFinancialYear(Number(e.target.value))} className="rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
@@ -942,12 +947,12 @@ const Footer = () => (
         <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                 <div className="md:col-span-2 lg:col-span-1">
-                    <img className="h-12 mb-4" src="/logo.png" alt="Logo Carancho Aerodesign" />
+                    <img className="h-12 mb-4" src="logo.png" alt="Logo Carancho Aerodesign" />
                     <p className="text-sm">Projetando o futuro da aviação, um voo de cada vez.</p>
                 </div>
 
                 <div>
-                    <h3 className="text-lg font-semibold text-white uppercase tracking-wider">Contato</h3>
+                    <h3 className="text-lg font-semibold text-white uppercase tracking-wider">Contacto</h3>
                     <div className="mt-4 space-y-4 text-sm">
                         <div className="flex items-start gap-3">
                             <MapPin size={18} className="text-[#d4982c] shrink-0 mt-1" />
