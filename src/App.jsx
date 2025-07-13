@@ -952,7 +952,7 @@ const Footer = () => (
                 </div>
 
                 <div>
-                    <h3 className="text-lg font-semibold text-white uppercase tracking-wider">Contacto</h3>
+                    <h3 className="text-lg font-semibold text-white uppercase tracking-wider">Contato</h3>
                     <div className="mt-4 space-y-4 text-sm">
                         <div className="flex items-start gap-3">
                             <MapPin size={18} className="text-[#d4982c] shrink-0 mt-1" />
