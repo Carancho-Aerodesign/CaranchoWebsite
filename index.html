@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
   <head>
-    <!----- BÁSICO ----->
+    <!-- BÁSICO -->
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Carancho Aerodesign</title>
@@ -10,7 +10,7 @@
       content="Desde 2004, a Carancho Aerodesign projeta e constrói aeronaves com paixão e excelência em engenharia."
     />
 
-    <!----- SEO / SOCIAL ----->
+    <!-- SEO / SOCIAL -->
     <meta property="og:title" content="Carancho Aerodesign" />
     <meta
       property="og:description"
@@ -21,60 +21,33 @@
     <meta property="og:url" content="https://caranchoaerodesign.com" />
     <meta name="twitter:card" content="summary_large_image" />
 
-    <!----- FAVICON ----->
-    <link rel="icon" href="/favicon.ico" />
+    <!-- FAVICON -->
+    <link rel="icon" href="/icon.png" />
 
-    <!----- TIPOGRAFIA (Google Fonts) ----->
+    <!-- TIPOGRAFIA (Google Fonts) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      rel="preconnect"
-      href="https://fonts.googleapis.com"
-    />
-    <link
-      rel="preconnect"
-      href="https://fonts.gstatic.com"
-      crossorigin
-    />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Poppins:wght@700;800&display=swap"
       rel="stylesheet"
     />
 
+    <!-- ESTILOS (Tailwind CSS) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
   </head>
 
-  <body>
-    <!----- Fallback para navegadores sem JS ----->
-    <noscript
-      >Este site depende de JavaScript para funcionar corretamente. Por favor,
-      habilite-o no seu navegador.</noscript
-    >
-
-    <!----- “root” será substituído pela SPA/SSR (React, etc.) ----->
-    <div id="root">
-      <header>
-        <h1>Carancho Aerodesign</h1>
-        <nav aria-label="Navegação principal">
-          <ul>
-            <li><a href="#sobre">Sobre</a></li>
-            <li><a href="#projetos">Projetos</a></li>
-            <li><a href="#contato">Contato</a></li>
-          </ul>
-        </nav>
-      </header>
-
-      <main id="sobre">
-        <h2>Desde 2004, respirando engenharia e inovação</h2>
-        <p>
-          Projetar e construir aeronaves transcende a engenharia; é uma verdadeira
-          paixão que nos move diariamente.
-        </p>
-      </main>
-
-      <footer>
-        © 2004-2025 Carancho Aerodesign • Todos os direitos reservados
-      </footer>
-    </div>
-
-    <!----- Entrada da aplicação (Vite/React, etc.) ----->
+  <body class="bg-gray-100">
+    <!-- Fallback para navegadores sem JS -->
+    <noscript>
+      Este site depende de JavaScript para funcionar corretamente. Por favor,
+      habilite-o no seu navegador.
+    </noscript>
+    
+    <!-- Ponto de entrada da aplicação React -->
+    <div id="root"></div>
+    
+    <!-- Script principal da aplicação (Vite/React) -->
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

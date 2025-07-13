@@ -3,7 +3,7 @@ import { initializeApp, getApps } from 'firebase/app';
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { getFirestore, doc, onSnapshot, setDoc, addDoc, deleteDoc, collection, getDocs, query, limit } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { Shield, Users, LogIn, LogOut, User, Lock, Twitter, Instagram, Facebook, Trophy, Star, Award, Menu, X, ChevronLeft, ChevronRight, Briefcase, Crown, UserCheck, Hash, GraduationCap, PlusCircle, Trash2, Edit, Save, LayoutDashboard, Image as ImageIcon, Link as LinkIcon, AlertCircle, CheckCircle, XCircle, UploadCloud, Settings, Building, ChevronDown, MapPin, Mail } from 'lucide-react';
+import { Shield, Users, LogIn, LogOut, User, Lock, Youtube, Instagram, Facebook, Trophy, Star, Award, Menu, X, ChevronLeft, ChevronRight, Briefcase, Crown, UserCheck, Hash, GraduationCap, PlusCircle, Trash2, Edit, Save, LayoutDashboard, Image as ImageIcon, Link as LinkIcon, AlertCircle, CheckCircle, XCircle, UploadCloud, Settings, Building, ChevronDown, MapPin, Mail } from 'lucide-react';
 import './styles/App.css';
 import { appId, firebaseConfig } from './firebase';
 
@@ -26,9 +26,7 @@ const LoginButton = ({ onClick, fullWidth = false }) => (<button onClick={onClic
 const LogoutButton = ({ onClick, fullWidth = false }) => (<button onClick={onClick} className={`bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-5 rounded-lg flex items-center justify-center transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-red-500/50 ${fullWidth ? 'w-full' : ''}`}><LogOut className="h-5 w-5 mr-2" />Logout</button>);
 const TeamMemberModal = ({ member, onClose }) => { if (!member) return null; const { name, assignments, generalRoles, age, course, img } = member; return ( <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in" onClick={onClose}><div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-auto border border-gray-200 animate-scale-up flex flex-col md:flex-row overflow-hidden" onClick={(e) => e.stopPropagation()}><div className="md:w-2/5 flex-shrink-0 bg-gray-100">{img ? (<img src={img} alt={name} className="w-full h-48 md:h-full object-cover" />) : (<div className="w-full h-48 md:h-full flex items-center justify-center"><User size={96} className="text-gray-400" /></div>)}</div><div className="p-6 flex flex-col flex-grow text-gray-800"><h2 className="text-3xl font-bold text-[#d4982c] mb-4">{name}</h2><div className="space-y-3 text-gray-600 flex-grow">{generalRoles && generalRoles.length > 0 && <div className="flex items-center"><Briefcase size={16} className="mr-3 text-[#d4982c] flex-shrink-0" /><span>{generalRoles.join(', ')}</span></div>}{assignments && assignments.length > 0 && <div className="flex items-start"><Users size={16} className="mr-3 mt-1 text-[#d4982c] flex-shrink-0" /><div>{assignments.map(a => <div key={a.department}>{a.department}: <span className="font-semibold">{a.role}</span></div>)}</div></div>}{age && <div className="flex items-center"><Hash size={16} className="mr-3 text-[#d4982c] flex-shrink-0" /><span>{age} anos</span></div>}{course && <div className="flex items-center"><GraduationCap size={16} className="mr-3 text-[#d4982c] flex-shrink-0" /><span>{course}</span></div>}</div><button onClick={onClose} className="mt-6 w-full md:w-auto self-end bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg transition-colors">Fechar</button></div><button onClick={onClose} className="absolute top-3 right-3 bg-white/50 p-1.5 rounded-full text-gray-800 hover:bg-white/80 transition-colors md:hidden"><X size={20} /></button></div></div> );};
 const MemberCard = ({ member, onCardClick, displayRole }) => { const isCaptain = member.generalRoles?.includes('Capitão'); const Icon = isCaptain ? Crown : User; return (<div className="text-center group cursor-pointer" onClick={() => onCardClick(member)}><div className={`relative w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden mx-auto transform transition-all duration-300 group-hover:scale-105 shadow-lg ring-2 ${isCaptain ? 'ring-[#d4982c]' : 'ring-gray-300 group-hover:ring-[#d4982c]'}`}>{member.img ? (<img src={member.img} alt={member.name} className="w-full h-full object-cover" />) : (<div className="w-full h-full flex items-center justify-center bg-gray-200"><Icon size={isCaptain ? 40 : 32} className="text-gray-500" /></div>)}</div><h4 className="mt-3 text-base sm:text-lg font-bold text-gray-900">{member.name}</h4><p className={`text-sm font-semibold text-[#d4982c]`}>{displayRole}</p></div>);};
-const TeamHierarchySection = ({ teamHierarchy }) => {
-    const [selectedMember, setSelectedMember] = useState(null);
-    
+const TeamHierarchySection = ({ teamHierarchy, setSelectedMember }) => {
     if (!teamHierarchy || !teamHierarchy.members || teamHierarchy.members.length === 0) {
         return <div className="text-center text-gray-500 py-10 max-w-2xl mx-auto">A equipa ainda não foi formada. Adicione membros no painel de administração para começar.</div>;
     }
@@ -37,45 +35,42 @@ const TeamHierarchySection = ({ teamHierarchy }) => {
     const supportMembers = teamHierarchy.members.filter(m => m.generalRoles?.some(r => ['Piloto', 'Adm'].includes(r)) && !m.generalRoles.includes('Capitão'));
 
     return (
-        <>
-            <TeamMemberModal member={selectedMember} onClose={() => setSelectedMember(null)} />
-            <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16">
-                <div className="text-center">
-                    <h2 className="text-3xl md:text-4xl font-bold text-[#d4982c]">Nossa Estrutura</h2>
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16">
+            <div className="text-center">
+                <h2 className="text-3xl md:text-4xl font-bold text-[#d4982c]">Nossa Estrutura</h2>
+            </div>
+            {captain && (
+                <div className="flex justify-center">
+                    <MemberCard member={captain} onCardClick={setSelectedMember} displayRole="Capitão" />
                 </div>
-                {captain && (
-                    <div className="flex justify-center">
-                        <MemberCard member={captain} onCardClick={setSelectedMember} displayRole="Capitão" />
-                    </div>
-                )}
-                <div className="space-y-12">
-                    {teamHierarchy.departments.map(dept => {
-                        const departmentMembers = teamHierarchy.members.filter(m => m.assignments?.some(a => a.department === dept.name));
-                        if (departmentMembers.length === 0) return null;
+            )}
+            <div className="space-y-12">
+                {teamHierarchy.departments.map(dept => {
+                    const departmentMembers = teamHierarchy.members.filter(m => m.assignments?.some(a => a.department === dept.name));
+                    if (departmentMembers.length === 0) return null;
 
-                        return (
-                            <div key={dept.id} className="bg-white p-6 rounded-xl border border-gray-200 shadow-md">
-                                <h3 className="text-2xl font-bold text-center mb-6 text-gray-800">{dept.name}</h3>
-                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-x-4 gap-y-8 justify-items-center">
-                                    {departmentMembers.map(member => {
-                                        const assignment = member.assignments.find(a => a.department === dept.name);
-                                        return <MemberCard key={member.id} member={member} onCardClick={setSelectedMember} displayRole={assignment.role} />
-                                    })}
-                                </div>
-                            </div>
-                        )
-                    })}
-                     {supportMembers.length > 0 && (
-                        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-md">
-                            <h3 className="text-2xl font-bold text-center mb-6 text-gray-800">Funções de Suporte</h3>
+                    return (
+                        <div key={dept.id} className="bg-white p-6 rounded-xl border border-gray-200 shadow-md">
+                            <h3 className="text-2xl font-bold text-center mb-6 text-gray-800">{dept.name}</h3>
                             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-x-4 gap-y-8 justify-items-center">
-                                {supportMembers.map(member => <MemberCard key={member.id} member={member} onCardClick={setSelectedMember} displayRole={member.generalRoles.filter(r => r !== 'Capitão').join(', ')} />)}
+                                {departmentMembers.map(member => {
+                                    const assignment = member.assignments.find(a => a.department === dept.name);
+                                    return <MemberCard key={member.id} member={member} onCardClick={setSelectedMember} displayRole={assignment.role} />
+                                })}
                             </div>
                         </div>
-                    )}
-                </div>
-            </section>
-        </>
+                    )
+                })}
+                 {supportMembers.length > 0 && (
+                    <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-md">
+                        <h3 className="text-2xl font-bold text-center mb-6 text-gray-800">Funções de Suporte</h3>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-x-4 gap-y-8 justify-items-center">
+                            {supportMembers.map(member => <MemberCard key={member.id} member={member} onCardClick={setSelectedMember} displayRole={member.generalRoles.filter(r => r !== 'Capitão').join(', ')} />)}
+                        </div>
+                    </div>
+                )}
+            </div>
+        </section>
     );
 };
 const Notification = ({ notification, onDismiss }) => {
@@ -107,7 +102,7 @@ const Notification = ({ notification, onDismiss }) => {
 };
 
 // --- PÁGINAS ---
-const HomePage = ({ teamHierarchy, sponsors, siteSettings, achievements }) => (<div className="space-y-24 md:space-y-32 mb-24 md:mb-32"><div className="relative h-[80vh] flex items-center justify-center text-center -mt-20 px-4"><div className="absolute inset-0 w-full h-full bg-cover bg-center" style={{ backgroundImage: `url('${siteSettings.heroImageUrl}')` }}></div><div className="absolute inset-0 bg-black/60 z-10"></div><div className="relative z-20 animate-fade-in-up"><h1 className="font-poppins text-4xl sm:text-5xl md:text-7xl font-extrabold tracking-tighter mb-4 text-shadow-lg text-white">Carancho Aerodesign</h1></div></div><SponsorsCarousel sponsors={sponsors} /><section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"><div className="text-center"><h2 className="text-3xl md:text-4xl font-bold text-[#d4982c]">Nossas Conquistas</h2></div><div className="mt-12 grid gap-8 sm:grid-cols-1 md:grid-cols-3">{achievements.length > 0 ? achievements.map(ach => (<AchievementCard key={ach.id} Icon={Trophy} title={ach.title} description={ach.description}/>)) : <p className="col-span-3 text-center text-gray-500">Nenhuma conquista adicionada ainda.</p>}</div></section><TeamHierarchySection teamHierarchy={teamHierarchy} /></div>);
+const HomePage = ({ teamHierarchy, sponsors, siteSettings, achievements, setSelectedMember }) => (<div className="space-y-24 md:space-y-32 mb-24 md:mb-32"><div className="relative h-[80vh] flex items-center justify-center text-center -mt-20 px-4"><div className="absolute inset-0 w-full h-full bg-cover bg-center" style={{ backgroundImage: `url('${siteSettings.heroImageUrl}')` }}></div><div className="absolute inset-0 bg-black/60 z-10"></div><div className="relative z-20 animate-fade-in-up"><h1 className="font-poppins text-4xl sm:text-5xl md:text-7xl font-extrabold tracking-tighter mb-4 text-shadow-lg text-white">Carancho Aerodesign</h1></div></div><SponsorsCarousel sponsors={sponsors} /><section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"><div className="text-center"><h2 className="text-3xl md:text-4xl font-bold text-[#d4982c]">Nossas Conquistas</h2></div><div className="mt-12 grid gap-8 sm:grid-cols-1 md:grid-cols-3">{achievements.length > 0 ? achievements.map(ach => (<AchievementCard key={ach.id} Icon={Trophy} title={ach.title} description={ach.description}/>)) : <p className="col-span-3 text-center text-gray-500">Nenhuma conquista adicionada ainda.</p>}</div></section><TeamHierarchySection teamHierarchy={teamHierarchy} setSelectedMember={setSelectedMember} /></div>);
 const AboutPage = ({ teamHierarchy, siteSettings }) => {
     const memberCount = teamHierarchy?.members?.length || 0;
 
@@ -155,7 +150,6 @@ const LoginPage = ({ setCurrentPage, setNotification, auth, isAuthReady, isAdmin
         setError('');
         try {
             await signInWithEmailAndPassword(auth, email, password);
-            // onAuthStateChanged in App will handle navigation
         } catch (err) {
             setError('E-mail ou senha inválidos.');
             console.error("Login Error:", err);
@@ -716,9 +710,9 @@ const Footer = () => (
                 </div>
             </div>
             <div className="flex justify-center space-x-6 mb-8">
-                <a href="#" className="text-amber-100 hover:text-white transition-colors"><Twitter /></a>
-                <a href="#" className="text-amber-100 hover:text-white transition-colors"><Instagram /></a>
-                <a href="#" className="text-amber-100 hover:text-white transition-colors"><Facebook /></a>
+                <a href="https://www.youtube.com/@caranchoaerodesign" className="text-amber-100 hover:text-white transition-colors"><Youtube /></a>
+                <a href="https://www.instagram.com/caranchoufsm/" className="text-amber-100 hover:text-white transition-colors"><Instagram /></a>
+                <a href="https://www.facebook.com/CaranchoUFSM/" className="text-amber-100 hover:text-white transition-colors"><Facebook /></a>
             </div>
             <p className="text-base text-amber-100">&copy; {new Date().getFullYear()} Carancho Aerodesign. Todos os direitos reservados.</p>
         </div>
@@ -734,17 +728,18 @@ const SponsorsCarousel = ({ sponsors }) => {
             <div className="text-center mb-10 px-4">
                 <h2 className="text-3xl md:text-4xl font-bold text-[#d4982c]">Nossos Parceiros</h2>
             </div>
-            <div className="w-full inline-flex flex-nowrap overflow-hidden [mask-image:_linear-gradient(to_right,transparent_0,_black_128px,_black_calc(100%-200px),transparent_100%)]">
-                <ul className="flex items-center justify-center md:justify-start [&_li]:mx-8 [&_img]:max-w-none animate-infinite-scroll" style={{ animationDuration: `${animationDuration}s`}}>
-                    {sponsors.map((sponsor) => (
-                        <li key={sponsor.id}><img src={sponsor.logo} alt={sponsor.name} className="max-h-12 w-auto" /></li>
+            <div 
+                className="w-full inline-flex flex-nowrap overflow-hidden group"
+                style={{ maskImage: 'linear-gradient(to right, transparent 0, black 10%, black 90%, transparent 100%)' }}
+            >
+                <div className="flex items-center justify-start animate-infinite-scroll group-hover:pause" style={{ animationDuration: `${animationDuration}s` }}>
+                    {/* Render items twice for seamless loop */}
+                    {[...sponsors, ...sponsors].map((sponsor, index) => (
+                        <div key={index} className="mx-8 flex-shrink-0">
+                             <img src={sponsor.logo} alt={sponsor.name} className="max-h-24 w-auto" />
+                        </div>
                     ))}
-                </ul>
-                <ul className="flex items-center justify-center md:justify-start [&_li]:mx-8 [&_img]:max-w-none animate-infinite-scroll" style={{ animationDuration: `${animationDuration}s`}} aria-hidden="true">
-                     {sponsors.map((sponsor) => (
-                        <li key={`${sponsor.id}-clone`}><img src={sponsor.logo} alt={sponsor.name} className="max-h-12 w-auto" /></li>
-                    ))}
-                </ul>
+                </div>
             </div>
         </section>
     );
@@ -769,6 +764,7 @@ export default function App() {
   const [sponsors, setSponsors] = useState([]);
   const [achievements, setAchievements] = useState([]);
   const [siteSettings, setSiteSettings] = useState(blankSiteSettings);
+  const [selectedMember, setSelectedMember] = useState(null);
 
   // Inicialização do Firebase
   useEffect(() => {
@@ -872,7 +868,7 @@ export default function App() {
         if (isAdminRegistered) return <LoginPage auth={auth} isAuthReady={isAuthReady} setCurrentPage={setCurrentPage} setNotification={setNotification} isAdminRegistered={isAdminRegistered} />;
         return <RegisterPage auth={auth} isAuthReady={isAuthReady} db={db} setCurrentPage={setCurrentPage} setNotification={setNotification} />;
       case 'admin': return user ? <AdminPage db={db} storage={storage} teamHierarchy={teamHierarchy} sponsors={sponsors} achievements={achievements} siteSettings={siteSettings} setNotification={setNotification} /> : <LoginPage auth={auth} isAuthReady={isAuthReady} setCurrentPage={setCurrentPage} setNotification={setNotification} isAdminRegistered={isAdminRegistered} />;
-      case 'home': default: return <HomePage teamHierarchy={teamHierarchy} sponsors={sponsors} siteSettings={siteSettings} achievements={achievements} />;
+      case 'home': default: return <HomePage teamHierarchy={teamHierarchy} sponsors={sponsors} siteSettings={siteSettings} achievements={achievements} setSelectedMember={setSelectedMember} />;
     }
   };
 
@@ -884,26 +880,8 @@ export default function App() {
         <main className="flex-grow pt-20">{!isLoading && renderPage()}</main>
         <Footer />
         <Notification notification={notification} onDismiss={() => setNotification(null)} />
+        <TeamMemberModal member={selectedMember} onClose={() => setSelectedMember(null)} />
       </div>
     </div>
   );
 }
-// --- CSS PARA ANIMAÇÕES ---
-const style = document.createElement('style');
-style.textContent = `
-  @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
-  .animate-fade-in { animation: fade-in 0.3s ease-out forwards; }
-  @keyframes scale-up { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
-  .animate-scale-up { animation: scale-up 0.3s ease-out forwards; }
-  @keyframes fade-in-up { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-  .animate-fade-in-up { animation: fade-in-up 0.8s ease-out forwards; opacity: 0; animation-delay: 0.2s; }
-  .text-shadow-lg { text-shadow: 0 2px 8px rgba(0,0,0,0.5); }
-  @keyframes infinite-scroll {
-      from { transform: translateX(0); }
-      to { transform: translateX(-100%); }
-  }
-  .animate-infinite-scroll {
-      animation: infinite-scroll linear infinite;
-  }
-`;
-document.head.appendChild(style);
