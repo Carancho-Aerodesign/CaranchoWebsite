@@ -3,7 +3,7 @@ import { initializeApp, getApps } from 'firebase/app';
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, updatePassword, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
 import { getFirestore, doc, onSnapshot, setDoc, addDoc, deleteDoc, collection, getDocs, query, limit, updateDoc } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { Shield, Users, LogIn, LogOut, User, Lock, Linkedin, Youtube, Instagram, Facebook, Trophy, Star, Award, Menu, X, ChevronLeft, ChevronRight, Briefcase, Crown, UserCheck, Hash, GraduationCap, PlusCircle, Trash2, Edit, Save, LayoutDashboard, Image as ImageIcon, Link as LinkIcon, AlertCircle, CheckCircle, XCircle, UploadCloud, Settings, Building, ChevronDown, MapPin, Mail, Eye, EyeOff, DollarSign, FileDown, Circle } from 'lucide-react';
+import { Shield, Users, LogIn, LogOut, User, Lock, Instagram, Facebook, Trophy, Star, Award, Menu, X, ChevronLeft, ChevronRight, Briefcase, Crown, UserCheck, Hash, GraduationCap, PlusCircle, Trash2, Edit, Save, LayoutDashboard, Image as ImageIcon, Link as LinkIcon, AlertCircle, CheckCircle, XCircle, UploadCloud, Settings, Building, ChevronDown, MapPin, Mail, Eye, EyeOff, DollarSign, FileDown, Circle } from 'lucide-react';
 
 import './styles/App.css';
 import { appId, firebaseConfig } from './firebase';
@@ -15,7 +15,8 @@ const blankTeamHierarchy = {
 };
 const blankSiteSettings = {
     heroImageUrl: '@public/capa.jpeg',
-    participations: 0
+    participations: 0,
+    monthlyDues: 20
 };
 
 // --- COMPONENTES DE UI (Navbar, Modals, etc.) ---
@@ -454,7 +455,7 @@ const AdminPage = ({ db, storage, teamHierarchy, sponsors, achievements, siteSet
                 await updateDoc(sponsorRef, sponsorData);
                 setNotification({ message: 'Patrocinador atualizado!', type: 'success' });
             } else {
-                const sponsorsColRef = collection(db, `/artifacts/${appId}/public/data/sponsors`);
+                const sponsorsColRef = collection(db, `/artifacts/${appId}/public/data/sponsorships`);
                 await addDoc(sponsorsColRef, sponsorData);
                 setNotification({ message: 'Patrocinador adicionado!', type: 'success' });
             }
@@ -857,8 +858,7 @@ const AdminPage = ({ db, storage, teamHierarchy, sponsors, achievements, siteSet
                             </div>
                             <div className="flex justify-between items-center mb-4">
                                 <select value={financialYear} onChange={(e) => setFinancialYear(Number(e.target.value))} className="rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
-                                    <option>{new Date().getFullYear()}</option>
-                                    <option>{new Date().getFullYear() - 1}</option>
+                                    {Array.from({length: 3}, (_, i) => new Date().getFullYear() - i).map(year => <option key={year} value={year}>{year}</option>)}
                                 </select>
                                 <button onClick={handleExportCSV} className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2"><FileDown size={18}/>Exportar CSV</button>
                             </div>
@@ -922,26 +922,57 @@ const SelectField = ({ name, value, onChange, Icon, children }) => (
         </span>
     </div>
 );
+const LinkedinIcon = (props) => (
+  <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" />
+    <rect x="2" y="9" width="4" height="12" />
+    <circle cx="4" cy="4" r="2" />
+  </svg>
+);
+
+const YoutubeIcon = (props) => (
+  <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21.54 6.22a4.5 4.5 0 0 0-3.18-3.18C16.9 2.5 12 2.5 12 2.5s-4.9 0-6.36.54a4.5 4.5 0 0 0-3.18 3.18C2 7.68 2 12 2 12s0 4.32.54 5.78a4.5 4.5 0 0 0 3.18 3.18C7.1 21.5 12 21.5 12 21.5s4.9 0 6.36-.54a4.5 4.5 0 0 0 3.18-3.18C22 16.32 22 12 22 12s0-4.32-.46-5.78z" />
+    <polygon points="9.5,7.5 15.5,12 9.5,16.5" />
+  </svg>
+);
+
 const Footer = () => (
-    <footer className="bg-[#d4982c] text-white">
-        <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8 text-center">
-            <div className="mb-8 space-y-4 text-sm">
-                <div className="flex items-center justify-center gap-2 text-amber-100 flex-wrap">
-                    <MapPin size={16} className="shrink-0" />
-                    <span>Av. Roraima nº 1000, Cidade Universitária, Bairro Camobi, Santa Maria - RS, 97105-900</span>
+    <footer className="bg-gray-900 text-gray-400">
+        <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                <div className="md:col-span-2 lg:col-span-1">
+                    <img className="h-12 mb-4" src="/logo.png" alt="Logo Carancho Aerodesign" />
+                    <p className="text-sm">Projetando o futuro da aviação, um voo de cada vez.</p>
                 </div>
-                <div className="flex items-center justify-center gap-2 text-amber-100">
-                    <Mail size={16} className="shrink-0" />
-                    <a href="mailto:carancho@ufsm.br" className="hover:text-white transition-colors">carancho@ufsm.br</a>
+
+                <div>
+                    <h3 className="text-lg font-semibold text-white uppercase tracking-wider">Contato</h3>
+                    <div className="mt-4 space-y-4 text-sm">
+                        <div className="flex items-start gap-3">
+                            <MapPin size={18} className="text-[#d4982c] shrink-0 mt-1" />
+                            <span>Av. Roraima nº 1000, Cidade Universitária, Bairro Camobi, Santa Maria - RS, 97105-900</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <Mail size={18} className="text-[#d4982c] shrink-0" />
+                            <a href="mailto:carancho@ufsm.br" className="hover:text-[#d4982c] transition-colors">carancho@ufsm.br</a>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 className="text-lg font-semibold text-white uppercase tracking-wider">Siga-nos</h3>
+                    <div className="flex mt-4 space-x-6">
+                        <a href="https://www.linkedin.com/company/caranchoaerodesign" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-[#d4982c] transition-colors"><span className="sr-only">LinkedIn</span><LinkedinIcon /></a>
+                        <a href="https://www.youtube.com/@CaranchoAer/" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-[#d4982c] transition-colors"><span className="sr-only">YouTube</span><YoutubeIcon /></a>
+                        <a href="https://www.instagram.com/caranchoufsm" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-[#d4982c] transition-colors"><span className="sr-only">Instagram</span><Instagram /></a>
+                        <a href="https://www.facebook.com/caranchoufsm" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-[#d4982c] transition-colors"><span className="sr-only">Facebook</span><Facebook /></a>
+                    </div>
                 </div>
             </div>
-            <div className="flex justify-center space-x-6 mb-8">
-                <a href="https://br.linkedin.com/company/caranchoaerodesign" className="text-amber-100 hover:text-white transition-colors"><Linkedin /></a>
-                <a href="https://www.youtube.com/@CaranchoAer/" className="text-amber-100 hover:text-white transition-colors"><Youtube /></a>
-                <a href="https://www.instagram.com/caranchoufsm" className="text-amber-100 hover:text-white transition-colors"><Instagram /></a>
-                <a href="https://www.facebook.com/caranchoufsm" className="text-amber-100 hover:text-white transition-colors"><Facebook /></a>
+            <div className="mt-12 border-t border-gray-700 pt-8 text-center">
+                <p className="text-base text-gray-400">&copy; {new Date().getFullYear()} Carancho Aerodesign. Todos os direitos reservados.</p>
             </div>
-            <p className="text-base text-amber-100">&copy; {new Date().getFullYear()} Carancho Aerodesign. Todos os direitos reservados.</p>
         </div>
     </footer>
 );
