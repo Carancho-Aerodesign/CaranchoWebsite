@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { initializeApp, getApps } from 'firebase/app';
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, updatePassword, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
-import { getFirestore, doc, onSnapshot, setDoc, addDoc, deleteDoc, collection, getDocs, query, limit, updateDoc, getDoc } from 'firebase/firestore';
+import { getFirestore, doc, onSnapshot, setDoc, addDoc, deleteDoc, collection, getDocs, query, limit, updateDoc, getDoc, enableIndexedDbPersistence } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { Shield, Users, LogIn, LogOut, User, Lock, Twitter, Instagram, Facebook, Trophy, Star, Award, Menu, X, ChevronLeft, ChevronRight, Briefcase, Crown, UserCheck, Hash, GraduationCap, PlusCircle, Trash2, Edit, Save, LayoutDashboard, Image as ImageIcon, Link as LinkIcon, AlertCircle, CheckCircle, XCircle, UploadCloud, Settings, Building, ChevronDown, MapPin, Mail, Eye, EyeOff, DollarSign, FileDown, Circle } from 'lucide-react';
 
@@ -35,7 +35,7 @@ const TeamHierarchySection = ({ teamHierarchy, setSelectedMember }) => {
     }
 
     const captain = teamHierarchy.members.find(m => m.generalRoles?.includes('Capitão'));
-    const supportMembers = teamHierarchy.members.filter(m => m.generalRoles?.some(r => ['Piloto', 'Adm'].includes(r)) && !m.generalRoles.includes('Capitão'));
+    const supportMembers = teamHierarchy.members.filter(m => m.generalRoles?.some(r => ['Piloto', 'Administrador', 'Orientador'].includes(r)) && !m.generalRoles.includes('Capitão'));
 
     return (
         <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16">
@@ -292,7 +292,7 @@ const AdminPage = ({ db, storage, teamHierarchy, sponsors, achievements, siteSet
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [financialYear, setFinancialYear] = useState(new Date().getFullYear());
 
-    const availableGeneralRoles = ['Capitão', 'Piloto', 'Adm'];
+    const availableGeneralRoles = ['Capitão', 'Piloto', 'Administrador', 'Orientador'];
     const availableDepartmentRoles = ['Membro', 'Gerente'];
 
     useEffect(() => {
@@ -947,7 +947,7 @@ const Footer = () => (
         <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                 <div className="md:col-span-2 lg:col-span-1">
-                    <img className="h-12 mb-4" src="logo.png" alt="Logo Carancho Aerodesign" />
+                    <img className="h-12 mb-4" src="https://raw.githubusercontent.com/Carancho-Aerodesign/CaranchoWebsite/v1.3/src/assets/logoWithLabelBright.svg" alt="Logo Carancho Aerodesign" />
                     <p className="text-sm">Projetando o futuro da aviação, um voo de cada vez.</p>
                 </div>
 
