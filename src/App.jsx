@@ -35,7 +35,7 @@ const TeamHierarchySection = ({ teamHierarchy, setSelectedMember }) => {
     }
 
     const captain = teamHierarchy.members.find(m => m.generalRoles?.includes('Capitão'));
-    const supportMembers = teamHierarchy.members.filter(m => m.generalRoles?.some(r => ['Piloto', 'Adm'].includes(r)) && !m.generalRoles.includes('Capitão'));
+    const supportMembers = teamHierarchy.members.filter(m => m.generalRoles?.some(r => ['Piloto', 'Administrador', 'Orientador'].includes(r)) && !m.generalRoles.includes('Capitão'));
 
     return (
         <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16">
@@ -103,6 +103,7 @@ const Notification = ({ notification, onDismiss }) => {
         </div>
     );
 };
+
 
 // --- PÁGINAS ---
 const HomePage = ({ teamHierarchy, sponsors, siteSettings, achievements, setSelectedMember }) => (<div className="space-y-24 md:space-y-32 mb-24 md:mb-32"><div className="relative h-[80vh] flex items-center justify-center text-center -mt-20 px-4"><div className="absolute inset-0 w-full h-full bg-cover bg-center" style={{ backgroundImage: `url('${siteSettings.heroImageUrl}')` }}></div><div className="absolute inset-0 bg-black/60 z-10"></div><div className="relative z-20 animate-fade-in-up"><h1 className="font-poppins text-4xl sm:text-5xl md:text-7xl font-extrabold tracking-tighter mb-4 text-shadow-lg text-white">Carancho Aerodesign</h1></div></div><SponsorsCarousel sponsors={sponsors} /><section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"><div className="text-center"><h2 className="text-3xl md:text-4xl font-bold text-[#d4982c]">Nossas Conquistas</h2></div><div className="mt-12 grid gap-8 sm:grid-cols-1 md:grid-cols-3">{achievements.length > 0 ? achievements.map(ach => (<AchievementCard key={ach.id} Icon={Trophy} title={ach.title} description={ach.description}/>)) : <p className="col-span-3 text-center text-gray-500">Nenhuma conquista adicionada ainda.</p>}</div></section><TeamHierarchySection teamHierarchy={teamHierarchy} setSelectedMember={setSelectedMember} /></div>);
@@ -292,7 +293,7 @@ const AdminPage = ({ db, storage, teamHierarchy, sponsors, achievements, siteSet
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [financialYear, setFinancialYear] = useState(new Date().getFullYear());
 
-    const availableGeneralRoles = ['Capitão', 'Piloto', 'Adm'];
+    const availableGeneralRoles = ['Capitão', 'Piloto', 'Administrador', 'Orientador'];
     const availableDepartmentRoles = ['Membro', 'Gerente'];
 
     useEffect(() => {
@@ -947,12 +948,12 @@ const Footer = () => (
         <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                 <div className="md:col-span-2 lg:col-span-1">
-                    <img className="h-12 mb-4" src="logo.png" alt="Logo Carancho Aerodesign" />
+                    <img className="h-12 mb-4" src="https://raw.githubusercontent.com/Carancho-Aerodesign/CaranchoWebsite/v1.3/src/assets/logoWithLabelBright.svg" alt="Logo Carancho Aerodesign" />
                     <p className="text-sm">Projetando o futuro da aviação, um voo de cada vez.</p>
                 </div>
 
                 <div>
-                    <h3 className="text-lg font-semibold text-white uppercase tracking-wider">Contato</h3>
+                    <h3 className="text-lg font-semibold text-white uppercase tracking-wider">Contacto</h3>
                     <div className="mt-4 space-y-4 text-sm">
                         <div className="flex items-start gap-3">
                             <MapPin size={18} className="text-[#d4982c] shrink-0 mt-1" />
@@ -1029,6 +1030,7 @@ export default function App() {
   const [achievements, setAchievements] = useState([]);
   const [siteSettings, setSiteSettings] = useState(blankSiteSettings);
   const [financials, setFinancials] = useState({ payments: [], sponsorships: [] });
+
 
   // Inicialização do Firebase
   useEffect(() => {
@@ -1146,6 +1148,7 @@ export default function App() {
         unsubSponsorships();
     };
   }, [isAuthReady, db]);
+
 
   const renderPage = () => {
     switch (currentPage) {
