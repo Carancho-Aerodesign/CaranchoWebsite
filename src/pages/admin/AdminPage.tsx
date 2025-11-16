@@ -43,6 +43,8 @@ import { SelectField } from '../../components/forms/SelectField';
 import { LoadingScreen } from '../../components/layout/LoadingScreen';
 import type {
   Achievement,
+  FinancialAdjustment,
+  FinancialAdjustmentType,
   FinancialSnapshot,
   NotificationState,
   Project,
@@ -174,6 +176,15 @@ interface PurchaseFormState {
   notes: string;
 }
 
+interface AdjustmentFormState {
+  id: string | null;
+  description: string;
+  amount: string;
+  adjustmentType: FinancialAdjustmentType;
+  date: string;
+  notes: string;
+}
+
 interface AdminPageProps {
   db: Firestore | null;
   storage: FirebaseStorage | null;
@@ -238,6 +249,17 @@ export const AdminPage = ({ db, storage, teamHierarchy, sponsors, achievements, 
   const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
   const [projectImageFile, setProjectImageFile] = useState<File | null>(null);
   const [projectImagePreview, setProjectImagePreview] = useState('');
+  const createDefaultAdjustmentForm = (): AdjustmentFormState => ({
+    id: null,
+    description: '',
+    amount: '',
+    adjustmentType: 'donation',
+    date: formatDateForInput(new Date()),
+    notes: '',
+  });
+  const [adjustmentForm, setAdjustmentForm] = useState<AdjustmentFormState>(createDefaultAdjustmentForm());
+  const [editingAdjustmentId, setEditingAdjustmentId] = useState<string | null>(null);
+  const [isSavingAdjustment, setIsSavingAdjustment] = useState(false);
   const getDefaultRaffleForm = (): RaffleFormState => ({
     id: null,
     ticketNumber: '',
@@ -249,6 +271,7 @@ export const AdminPage = ({ db, storage, teamHierarchy, sponsors, achievements, 
     received: true,
     quantity: '',
   });
+  const adjustmentsCollectionPath = `/artifacts/${appId}/public/data/financialAdjustments`;
   const [raffleForm, setRaffleForm] = useState<RaffleFormState>(getDefaultRaffleForm());
   const [editingRaffleId, setEditingRaffleId] = useState<string | null>(null);
   const [raffleSearchTerm, setRaffleSearchTerm] = useState('');
@@ -910,6 +933,74 @@ export const AdminPage = ({ db, storage, teamHierarchy, sponsors, achievements, 
             setNotification({ message: 'Compra removida.', type: 'success' });
         } catch (error) { console.error('Erro ao remover compra:', error); setNotification({ message: 'Erro ao remover compra.', type: 'error' }); }
     };
+    const resetAdjustmentForm = () => {
+        setAdjustmentForm(createDefaultAdjustmentForm());
+        setEditingAdjustmentId(null);
+    };
+    const handleAdjustmentChange = (event: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+        const { name, value } = event.target;
+        setAdjustmentForm(prev => ({ ...prev, [name]: value }));
+    };
+    const handleSaveAdjustment = async (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        if (!db) return;
+        const amountValue = Number(adjustmentForm.amount);
+        if (!Number.isFinite(amountValue) || amountValue <= 0) {
+            setNotification({ message: 'Informe um valor válido para o ajuste.', type: 'error' });
+            return;
+        }
+        const normalizedDescription = adjustmentForm.description.trim();
+        if (!normalizedDescription) {
+            setNotification({ message: 'Descreva o ajuste para controlá-lo.', type: 'error' });
+            return;
+        }
+        const adjustmentDate = parseDateInput(adjustmentForm.date) ?? new Date();
+        const payload = {
+            description: normalizedDescription,
+            amount: Math.abs(amountValue),
+            adjustmentType: adjustmentForm.adjustmentType,
+            date: adjustmentDate,
+            notes: adjustmentForm.notes.trim() ? adjustmentForm.notes.trim() : undefined,
+        };
+        setIsSavingAdjustment(true);
+        const adjustmentsColRef = collection(db, adjustmentsCollectionPath);
+        try {
+            if (editingAdjustmentId) {
+                const adjustmentDocRef = doc(db, adjustmentsCollectionPath, editingAdjustmentId);
+                await setDoc(adjustmentDocRef, payload);
+                setNotification({ message: 'Ajuste atualizado!', type: 'success' });
+            } else {
+                await addDoc(adjustmentsColRef, payload);
+                setNotification({ message: 'Ajuste registrado!', type: 'success' });
+            }
+            resetAdjustmentForm();
+        } catch (error) { console.error('Erro ao guardar ajuste financeiro:', error); setNotification({ message: 'Erro ao guardar ajuste financeiro.', type: 'error' }); } finally {
+            setIsSavingAdjustment(false);
+        }
+    };
+    const handleEditAdjustment = (adjustment: FinancialAdjustment & { dateValue?: Date | null }) => {
+        const parsedDate = adjustment.dateValue ?? parseDateInput((adjustment as { date?: Date }).date ?? adjustment.date) ?? new Date();
+        setEditingAdjustmentId(adjustment.id);
+        setAdjustmentForm({
+            id: adjustment.id,
+            description: adjustment.description || '',
+            amount: typeof adjustment.amount === 'number' ? String(adjustment.amount) : '',
+            adjustmentType: adjustment.adjustmentType ?? 'donation',
+            date: formatDateForInput(parsedDate),
+            notes: adjustment.notes || '',
+        });
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+    const removeAdjustment = async (id: string) => {
+        if (!db) return;
+        try {
+            await deleteDoc(doc(db, adjustmentsCollectionPath, id));
+            if (editingAdjustmentId === id) {
+                resetAdjustmentForm();
+            }
+            setNotification({ message: 'Ajuste removido.', type: 'success' });
+        } catch (error) { console.error('Erro ao remover ajuste financeiro:', error); setNotification({ message: 'Erro ao remover ajuste financeiro.', type: 'error' }); }
+    };
     const handlePasswordFormChange = (event: ChangeEvent<HTMLInputElement>) => {
         const { name, value } = event.target;
         setPasswordForm(prev => ({ ...prev, [name]: value }));
@@ -964,16 +1055,23 @@ export const AdminPage = ({ db, storage, teamHierarchy, sponsors, achievements, 
         csvContent += `Mensalidade,${date},${payerName},${p.amount}\r\n`;
       }
     });
-        const yearlySponsorships = financials.sponsorships.filter(s => s?.dateReceived && typeof s.dateReceived.toDate === 'function' && s.dateReceived.toDate().getFullYear() === financialYear);
-        yearlySponsorships.forEach(s => {
-            const date = s.dateReceived.toDate().toLocaleDateString('pt-BR');
-            csvContent += `Patrocínio,${date},${s.name},${s.amount}\r\n`;
-        });
-        const encodedUri = encodeURI(csvContent);
-        const link = document.createElement("a");
-        link.setAttribute("href", encodedUri);
-        link.setAttribute("download", `financeiro_carancho_${financialYear}.csv`);
-        document.body.appendChild(link);
+        const yearlySponsorships = financials.sponsorships.filter(s => s?.dateReceived && typeof s.dateReceived.toDate === 'function' && s.dateReceived.toDate().getFullYear() === financialYear);
+        yearlySponsorships.forEach(s => {
+            const date = s.dateReceived.toDate().toLocaleDateString('pt-BR');
+            csvContent += `Patrocínio,${date},${s.name},${s.amount}\r\n`;
+        });
+        const yearlyAdjustments = adjustmentsForYear;
+        yearlyAdjustments.forEach(adjustment => {
+            if (!adjustment.dateValue) return;
+            const typeLabel = adjustment.adjustmentType === 'donation' ? 'Ajuste (Entrada)' : 'Ajuste (Saída)';
+            const signedAmount = adjustment.adjustmentType === 'withdrawal' ? -adjustment.amount : adjustment.amount;
+            csvContent += `${typeLabel},${adjustment.dateValue.toLocaleDateString('pt-BR')},${adjustment.description || 'Sem descrição'},${signedAmount}\r\n`;
+        });
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `financeiro_carancho_${financialYear}.csv`);
+        document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
     };
@@ -993,6 +1091,24 @@ export const AdminPage = ({ db, storage, teamHierarchy, sponsors, achievements, 
       : 0;
   const raffleAmountPerTicket = Number(raffleForm.amount) || raffleTicketPrice;
   const estimatedRaffleTotal = raffleAmountPerTicket * raffleQuantityNumber;
+  const adjustmentsWithDates = (financials.adjustments ?? []).map((adjustment) => ({
+    ...adjustment,
+    dateValue: parseDateInput((adjustment as { date?: Date }).date ?? adjustment.date),
+  }));
+  const adjustmentsForYear = adjustmentsWithDates.filter(
+    (adjustment) => adjustment.dateValue?.getFullYear() === financialYear,
+  );
+  const adjustmentIncomeForYear = adjustmentsForYear
+    .filter((adjustment) => adjustment.adjustmentType === 'donation')
+    .reduce((acc, adjustment) => acc + (typeof adjustment.amount === 'number' ? adjustment.amount : 0), 0);
+  const adjustmentExpenseForYear = adjustmentsForYear
+    .filter((adjustment) => adjustment.adjustmentType === 'withdrawal')
+    .reduce((acc, adjustment) => acc + (typeof adjustment.amount === 'number' ? adjustment.amount : 0), 0);
+  const sortedAdjustmentsForYear = [...adjustmentsForYear].sort((a, b) => {
+    const aTime = a.dateValue ? a.dateValue.getTime() : 0;
+    const bTime = b.dateValue ? b.dateValue.getTime() : 0;
+    return bTime - aTime;
+  });
 
   if (!teamHierarchy || !db || !storage) return <LoadingScreen />;
 
@@ -1070,9 +1186,11 @@ export const AdminPage = ({ db, storage, teamHierarchy, sponsors, achievements, 
     { label: 'Mensalidades', amount: duesIncomeForYear },
     { label: 'Patrocínios', amount: sponsorIncomeForYear },
     { label: 'Rifas', amount: raffleIncomeForYear },
+    { label: 'Ajustes (Entradas)', amount: adjustmentIncomeForYear },
   ];
   const totalIncomeForYear = incomeBreakdown.reduce((acc, entry) => acc + entry.amount, 0);
-  const netResultForYear = totalIncomeForYear - totalPurchasesForYear;
+  const totalExpensesForYear = totalPurchasesForYear + adjustmentExpenseForYear;
+  const netResultForYear = totalIncomeForYear - totalExpensesForYear;
   const monthlyIncome = Array.from({ length: 12 }, () => 0);
   paymentsForYear.forEach(payment => {
     if (payment.month >= 1 && payment.month <= 12) {
@@ -1095,6 +1213,16 @@ export const AdminPage = ({ db, storage, teamHierarchy, sponsors, achievements, 
   purchasesWithDates.forEach(purchase => {
     if (purchase.dateValue && purchase.dateValue.getFullYear() === financialYear) {
       monthlyExpenses[purchase.dateValue.getMonth()] += typeof purchase.amount === 'number' ? purchase.amount : 0;
+    }
+  });
+  adjustmentsWithDates.forEach(adjustment => {
+    if (adjustment.dateValue && adjustment.dateValue.getFullYear() === financialYear) {
+      const monthIndex = adjustment.dateValue.getMonth();
+      if (adjustment.adjustmentType === 'donation') {
+        monthlyIncome[monthIndex] += typeof adjustment.amount === 'number' ? adjustment.amount : 0;
+      } else {
+        monthlyExpenses[monthIndex] += typeof adjustment.amount === 'number' ? adjustment.amount : 0;
+      }
     }
   });
   const maxMonthlyValue = Math.max(1, ...monthlyIncome, ...monthlyExpenses);
@@ -1202,6 +1330,175 @@ export const AdminPage = ({ db, storage, teamHierarchy, sponsors, achievements, 
   const hasMemberImage = Boolean(memberImageFile || memberImagePreview || memberForm.img);
   const hasSponsorLogo = Boolean(sponsorLogoFile || sponsorLogoPreview || sponsorForm.logoUrl);
   const hasProjectImage = Boolean(projectImageFile || projectImagePreview || projectForm.imageUrl);
+  const renderFinancialAdjustments = () => (
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div className="bg-white rounded-xl border border-gray-200 shadow-md p-6">
+        <h3 className="text-lg font-semibold text-gray-800 mb-4">{editingAdjustmentId ? 'Editar ajuste manual' : 'Registrar ajuste manual'}</h3>
+        <form onSubmit={handleSaveAdjustment} className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <SelectField Icon={Gift} name="adjustmentType" value={adjustmentForm.adjustmentType} onChange={handleAdjustmentChange}>
+              <option value="donation">Entrada / Doação</option>
+              <option value="withdrawal">Saída / Retirada</option>
+            </SelectField>
+            <InputField Icon={Calendar} type="date" name="date" value={adjustmentForm.date} onChange={handleAdjustmentChange} />
+          </div>
+          <InputField Icon={ClipboardList} name="description" placeholder="Descrição do ajuste" value={adjustmentForm.description} onChange={handleAdjustmentChange} />
+          <InputField Icon={DollarSign} name="amount" type="number" min="0" step="0.01" placeholder="Valor" value={adjustmentForm.amount} onChange={handleAdjustmentChange} />
+          <div>
+            <label htmlFor="adjustment-notes" className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Observações</label>
+            <textarea
+              id="adjustment-notes"
+              name="notes"
+              value={adjustmentForm.notes}
+              onChange={handleAdjustmentChange}
+              rows={3}
+              placeholder="Detalhes adicionais (opcional)"
+              className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-[#d4982c] focus:ring-[#d4982c]"
+            />
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="submit"
+              disabled={isSavingAdjustment}
+              className="flex-grow bg-[#d4982c] hover:bg-[#b58426] disabled:bg-gray-400 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center"
+            >
+              <Save className="mr-2" size={18} />
+              {isSavingAdjustment ? 'A guardar...' : editingAdjustmentId ? 'Atualizar ajuste' : 'Registrar ajuste'}
+            </button>
+            {editingAdjustmentId && (
+              <button type="button" onClick={resetAdjustmentForm} className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg">
+                Cancelar
+              </button>
+            )}
+          </div>
+        </form>
+      </div>
+      <div className="bg-white rounded-xl border border-gray-200 shadow-md p-6">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-800">Histórico de ajustes</h3>
+            <p className="text-sm text-gray-500">Ano {financialYear}</p>
+          </div>
+          <div className="text-sm text-gray-500 text-right">
+            <p>
+              Entradas: <span className="font-semibold text-green-700">{formatCurrency(adjustmentIncomeForYear)}</span>
+            </p>
+            <p>
+              Saídas: <span className="font-semibold text-red-700">{formatCurrency(adjustmentExpenseForYear)}</span>
+            </p>
+          </div>
+        </div>
+        <div className="mt-4 space-y-3 max-h-[22rem] overflow-y-auto pr-1">
+          {sortedAdjustmentsForYear.length ? (
+            sortedAdjustmentsForYear.map(adjustment => (
+              <div key={adjustment.id} className="bg-gray-50 rounded-lg p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="font-semibold text-gray-900">{adjustment.description}</p>
+                  <p className="text-xs text-gray-500">{adjustment.dateValue ? adjustment.dateValue.toLocaleDateString('pt-BR') : 'Data não disponível'}</p>
+                  {adjustment.notes ? <p className="text-xs text-gray-500 mt-1">{adjustment.notes}</p> : null}
+                </div>
+                <div className="flex flex-col items-end gap-2">
+                  <span className={`text-sm font-bold ${adjustment.adjustmentType === 'donation' ? 'text-green-700' : 'text-red-700'}`}>
+                    {adjustment.adjustmentType === 'withdrawal' ? '-' : '+'}
+                    {formatCurrency(typeof adjustment.amount === 'number' ? adjustment.amount : 0)}
+                  </span>
+                  <div className="flex gap-2">
+                    <button type="button" onClick={() => handleEditAdjustment(adjustment)} className="text-blue-500 hover:text-blue-700 p-2">
+                      <Edit size={18} />
+                    </button>
+                    <button type="button" onClick={() => removeAdjustment(adjustment.id)} className="text-red-500 hover:text-red-700 p-2">
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))
+          ) : (
+            <p className="text-sm text-gray-500 text-center py-6">Nenhum ajuste registrado neste ano.</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+  const renderFinancialSection = () => (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div className="bg-white rounded-xl border border-gray-200 shadow-md p-5">
+          <p className="text-sm text-gray-500">Entradas ({financialYear})</p>
+          <p className="text-3xl font-bold text-green-700">{formatCurrency(totalIncomeForYear)}</p>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 shadow-md p-5">
+          <p className="text-sm text-gray-500">Saídas ({financialYear})</p>
+          <p className="text-3xl font-bold text-red-700">{formatCurrency(totalExpensesForYear)}</p>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 shadow-md p-5">
+          <p className="text-sm text-gray-500">Resultado</p>
+          <p className={`text-3xl font-bold ${netResultForYear >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>{formatCurrency(netResultForYear)}</p>
+        </div>
+      </div>
+      <div className="bg-white rounded-xl border border-gray-200 shadow-md p-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm text-gray-500">Fluxo mensal</p>
+            <h3 className="text-lg font-semibold text-gray-800">{financialYear}</h3>
+          </div>
+          <select value={financialYear} onChange={(event) => setFinancialYear(Number(event.target.value))} className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-[#d4982c] focus:ring-[#d4982c]">
+            {financialYearOptions.map((year) => (
+              <option key={year} value={year}>
+                {year}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="mt-6 grid grid-cols-12 gap-3">
+          {monthlyFinancialSeries.map(({ label, income, expense, incomePercent, expensePercent }) => (
+            <div key={label} className="flex flex-col items-center text-xs text-gray-500">
+              <div className="h-40 w-full flex flex-col justify-end gap-1">
+                <div className="w-full bg-green-500/70 rounded-t-lg" style={{ height: `${incomePercent}%` }} title={`Entradas ${label}: ${formatCurrency(income)}`}></div>
+                <div className="w-full bg-red-500/70 rounded-b-lg" style={{ height: `${expensePercent}%` }} title={`Saídas ${label}: ${formatCurrency(expense)}`}></div>
+              </div>
+              <span className="mt-2 font-semibold">{label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div className="bg-white rounded-xl border border-gray-200 shadow-md p-6">
+          <h3 className="text-lg font-semibold text-gray-800 mb-4">Entradas por origem</h3>
+          <div className="space-y-3">
+            {incomeBreakdown.map((entry) => (
+              <div key={entry.label} className="flex items-center justify-between text-sm">
+                <span className="text-gray-600">{entry.label}</span>
+                <span className="font-semibold text-gray-900">{formatCurrency(entry.amount)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 shadow-md p-6">
+          <h3 className="text-lg font-semibold text-gray-800 mb-4">Compras ({financialYear})</h3>
+          {purchasesForYear.length ? (
+            <ul className="space-y-3">
+              {[...purchasesForYear]
+                .sort((a, b) => (b.dateValue?.getTime() ?? 0) - (a.dateValue?.getTime() ?? 0))
+                .slice(0, 6)
+                .map(purchase => (
+                  <li key={purchase.id} className="flex items-center justify-between text-sm">
+                    <div>
+                      <p className="font-semibold text-gray-900">{purchase.description}</p>
+                      <p className="text-gray-500">{purchase.dateValue ? purchase.dateValue.toLocaleDateString('pt-BR') : ''}</p>
+                    </div>
+                    <span className="font-semibold text-red-600">{formatCurrency(typeof purchase.amount === 'number' ? purchase.amount : 0)}</span>
+                  </li>
+                ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-gray-500">Nenhuma compra registada neste ano.</p>
+          )}
+        </div>
+      </div>
+      {renderFinancialAdjustments()}
+    </div>
+  );
     return (
         <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
             <h1 className="text-4xl font-bold text-center mb-10 text-[#d4982c]">Painel Administrativo</h1>
@@ -1571,82 +1868,7 @@ export const AdminPage = ({ db, storage, teamHierarchy, sponsors, achievements, 
                         </div>
                     )}
 
-                    {adminSection === 'financial' && (
-                        <div className="space-y-6">
-                            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                                <div className="bg-white rounded-xl border border-gray-200 shadow-md p-5">
-                                    <p className="text-sm text-gray-500">Entradas ({financialYear})</p>
-                                    <p className="text-3xl font-bold text-green-700">{formatCurrency(totalIncomeForYear)}</p>
-                                </div>
-                                <div className="bg-white rounded-xl border border-gray-200 shadow-md p-5">
-                                    <p className="text-sm text-gray-500">Saídas ({financialYear})</p>
-                                    <p className="text-3xl font-bold text-red-700">{formatCurrency(totalPurchasesForYear)}</p>
-                                </div>
-                                <div className="bg-white rounded-xl border border-gray-200 shadow-md p-5">
-                                    <p className="text-sm text-gray-500">Resultado</p>
-                                    <p className={`text-3xl font-bold ${netResultForYear >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>{formatCurrency(netResultForYear)}</p>
-                                </div>
-                            </div>
-                            <div className="bg-white rounded-xl border border-gray-200 shadow-md p-6">
-                                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                                    <div>
-                                        <p className="text-sm text-gray-500">Fluxo mensal</p>
-                                        <h3 className="text-lg font-semibold text-gray-800">{financialYear}</h3>
-                                    </div>
-                                    <select value={financialYear} onChange={(event) => setFinancialYear(Number(event.target.value))} className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-[#d4982c] focus:ring-[#d4982c]">
-                                        {financialYearOptions.map((year) => (
-                                            <option key={year} value={year}>{year}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div className="mt-6 grid grid-cols-12 gap-3">
-                                    {monthlyFinancialSeries.map(({ label, income, expense, incomePercent, expensePercent }) => (
-                                        <div key={label} className="flex flex-col items-center text-xs text-gray-500">
-                                            <div className="h-40 w-full flex flex-col justify-end gap-1">
-                                                <div className="w-full bg-green-500/70 rounded-t-lg" style={{ height: `${incomePercent}%` }} title={`Entradas ${label}: ${formatCurrency(income)}`}></div>
-                                                <div className="w-full bg-red-500/70 rounded-b-lg" style={{ height: `${expensePercent}%` }} title={`Saídas ${label}: ${formatCurrency(expense)}`}></div>
-                                            </div>
-                                            <span className="mt-2 font-semibold">{label}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                                <div className="bg-white rounded-xl border border-gray-200 shadow-md p-6">
-                                    <h3 className="text-lg font-semibold text-gray-800 mb-4">Entradas por origem</h3>
-                                    <div className="space-y-3">
-                                        {incomeBreakdown.map((entry) => (
-                                            <div key={entry.label} className="flex items-center justify-between text-sm">
-                                                <span className="text-gray-600">{entry.label}</span>
-                                                <span className="font-semibold text-gray-900">{formatCurrency(entry.amount)}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                                <div className="bg-white rounded-xl border border-gray-200 shadow-md p-6">
-                                    <h3 className="text-lg font-semibold text-gray-800 mb-4">Compras ({financialYear})</h3>
-                                    {purchasesForYear.length ? (
-                                        <ul className="space-y-3">
-                                            {[...purchasesForYear]
-                                                .sort((a, b) => (b.dateValue?.getTime() ?? 0) - (a.dateValue?.getTime() ?? 0))
-                                                .slice(0, 6)
-                                                .map((purchase) => (
-                                                    <li key={purchase.id} className="flex items-center justify-between text-sm">
-                                                        <div>
-                                                            <p className="font-semibold text-gray-900">{purchase.description}</p>
-                                                            <p className="text-gray-500">{purchase.dateValue ? purchase.dateValue.toLocaleDateString('pt-BR') : ''}</p>
-                                                        </div>
-                                                        <span className="font-semibold text-red-600">{formatCurrency(typeof purchase.amount === 'number' ? purchase.amount : 0)}</span>
-                                                    </li>
-                                                ))}
-                                        </ul>
-                                    ) : (
-                                        <p className="text-sm text-gray-500">Nenhuma compra registada neste ano.</p>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                    )}
+                    {adminSection === 'financial' && renderFinancialSection()}
 
                     {adminSection === 'purchases' && (
                         <div className="space-y-6">

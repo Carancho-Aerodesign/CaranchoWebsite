@@ -82,9 +82,21 @@ export interface PaymentRecord {
   datePaid?: Timestamp | Date;
 }
 
+export type FinancialAdjustmentType = 'donation' | 'withdrawal';
+
+export interface FinancialAdjustment {
+  id: string;
+  description: string;
+  amount: number;
+  adjustmentType: FinancialAdjustmentType;
+  date: Timestamp | Date;
+  notes?: string;
+}
+
 export interface FinancialSnapshot {
   payments: PaymentRecord[];
   sponsorships: Sponsor[];
+  adjustments: FinancialAdjustment[];
 }
 
 export interface RaffleSale {

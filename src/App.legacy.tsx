@@ -623,7 +623,7 @@ export default function App() {
   const [achievements, setAchievements] = useState([]);
   const [projects, setProjects] = useState([]);
   const [siteSettings, setSiteSettings] = useState(blankSiteSettings);
-  const [financials, setFinancials] = useState({ payments: [], sponsorships: [] });
+  const [financials, setFinancials] = useState({ payments: [], sponsorships: [], adjustments: [] });
 
   // Inicialização do Firebase
   useEffect(() => {
@@ -725,6 +725,7 @@ export default function App() {
     if (!isAuthReady || !db) return;
     const paymentsColRef = collection(db, `/artifacts/${appId}/public/data/payments`);
     const sponsorshipsColRef = collection(db, `/artifacts/${appId}/public/data/sponsors`);
+    const adjustmentsColRef = collection(db, `/artifacts/${appId}/public/data/financialAdjustments`);
 
     const unsubPayments = onSnapshot(paymentsColRef, (snapshot) => { 
         const paymentsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); 
@@ -734,7 +735,11 @@ export default function App() {
         const sponsorshipsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); 
         setFinancials(prev => ({ ...prev, sponsorships: sponsorshipsData })); 
     });
-    return () => { unsubPayments(); unsubSponsorships(); };
+    const unsubAdjustments = onSnapshot(adjustmentsColRef, (snapshot) => {
+        const adjustmentsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setFinancials(prev => ({ ...prev, adjustments: adjustmentsData }));
+    });
+    return () => { unsubPayments(); unsubSponsorships(); unsubAdjustments(); };
   }, [isAuthReady, db]);
 
   const renderPage = () => {
