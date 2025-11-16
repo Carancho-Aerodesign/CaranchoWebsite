@@ -5,10 +5,12 @@ import type { SiteSettings, TeamHierarchy } from '../../types';
 interface AboutPageProps {
   teamHierarchy: TeamHierarchy | null;
   siteSettings: SiteSettings;
+  projectCount: number;
 }
 
-export function AboutPage({ teamHierarchy, siteSettings }: AboutPageProps) {
+export function AboutPage({ teamHierarchy, siteSettings, projectCount }: AboutPageProps) {
   const memberCount = teamHierarchy?.members?.length ?? 0;
+  const participationCount = projectCount;
 
   return (
     <div className="max-w-4xl mx-auto py-16 px-4 sm:px-6 lg:px-8">
@@ -23,8 +25,8 @@ export function AboutPage({ teamHierarchy, siteSettings }: AboutPageProps) {
             <p className="mt-2 text-lg text-gray-600">Membros Atuais</p>
           </div>
           <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
-            <h3 className="text-4xl font-bold text-[#d4982c]">{siteSettings.participations ?? 0}</h3>
-            <p className="mt-2 text-lg text-gray-600">Participações em Eventos</p>
+            <h3 className="text-4xl font-bold text-[#d4982c]">{participationCount}</h3>
+            <p className="mt-2 text-lg text-gray-600">Participações / Projetos</p>
           </div>
         </div>
         <div className="prose prose-lg max-w-none text-gray-600 text-justify">
