@@ -26,12 +26,15 @@ import { ProjectsPage } from './pages/projects/ProjectsPage';
 import { LoginPage } from './pages/auth/LoginPage';
 import { RegisterPage } from './pages/auth/RegisterPage';
 import { AdminPage } from './pages/admin/AdminPage';
+import { RafflePublicPage } from './pages/raffle/RafflePublicPage';
 import type {
   Achievement,
   AppPage,
   FinancialSnapshot,
   NotificationState,
   Project,
+  PurchaseRecord,
+  RaffleSale,
   SiteSettings,
   Sponsor,
   TeamHierarchy,
@@ -49,12 +52,25 @@ const blankSiteSettings: SiteSettings = {
   heroImageUrl: '/capa.jpeg',
   participations: 0,
   monthlyDues: 20,
+  raffleTicketPrice: 0,
+  rafflePrize: '',
+  raffleValidationCode: '',
+  raffleClosed: false,
+};
+
+const getInitialPage = (): AppPage => {
+  const basePath = (import.meta.env.BASE_URL ?? '/').replace(/\/*$/, '/');
+  const normalized = window.location.pathname.replace(basePath.replace(/\/$/, ''), '').replace(/^\//, '').toLowerCase();
+  if (normalized.startsWith('rifas')) {
+    return 'raffle';
+  }
+  return 'home';
 };
 
 // --- COMPONENTES DE UI GENÉRICOS ---
 // --- COMPONENTE PRINCIPAL DA APLICAÇÃO ---
 export default function App() {
-  const [currentPage, setCurrentPage] = useState<AppPage>('home');
+  const [currentPage, setCurrentPage] = useState<AppPage>(getInitialPage());
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
   const [notification, setNotification] = useState<NotificationState | null>(null);
@@ -70,6 +86,8 @@ export default function App() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [siteSettings, setSiteSettings] = useState<SiteSettings>(blankSiteSettings);
   const [financials, setFinancials] = useState<FinancialSnapshot>({ payments: [], sponsorships: [] });
+  const [raffles, setRaffles] = useState<RaffleSale[]>([]);
+  const [purchases, setPurchases] = useState<PurchaseRecord[]>([]);
 
   const latestProjectHeroUrl = useMemo(() => {
     if (!projects.length) {
@@ -92,6 +110,15 @@ export default function App() {
   }, [projects]);
 
   const homeHeroImageUrl = latestProjectHeroUrl && latestProjectHeroUrl.trim().length > 0 ? latestProjectHeroUrl : siteSettings.heroImageUrl;
+
+  useEffect(() => {
+    const basePath = (import.meta.env.BASE_URL ?? '/').replace(/\/*$/, '/');
+    if (currentPage === 'raffle') {
+      window.history.replaceState(null, '', `${basePath}rifas`);
+    } else if (window.location.pathname.toLowerCase().includes('rifas')) {
+      window.history.replaceState(null, '', basePath);
+    }
+  }, [currentPage]);
 
   // Inicialização do Firebase
   useEffect(() => {
@@ -158,12 +185,40 @@ export default function App() {
   }, [isAuthReady, db]);
   
   // Fetch dados das Conquistas
-  useEffect(() => {
-    if (!isAuthReady || !db) return;
-    const achievementsColRef = collection(db, `/artifacts/${appId}/public/data/achievements`);
-    const unsubscribe = onSnapshot(achievementsColRef, (querySnapshot) => { setAchievements(querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))); }, (error) => { console.error("Error fetching achievements:", error); setNotification({message: "Erro ao carregar conquistas.", type: "error"}); });
-    return () => unsubscribe();
-  }, [isAuthReady, db]);
+  useEffect(() => {
+    if (!isAuthReady || !db) return;
+    const achievementsColRef = collection(db, `/artifacts/${appId}/public/data/achievements`);
+    const unsubscribe = onSnapshot(achievementsColRef, (querySnapshot) => { setAchievements(querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))); }, (error) => { console.error("Error fetching achievements:", error); setNotification({message: "Erro ao carregar conquistas.", type: "error"}); });
+    return () => unsubscribe();
+  }, [isAuthReady, db]);
+
+  // Fetch dados das Rifas
+  useEffect(() => {
+    if (!isAuthReady || !db) return;
+    const rafflesColRef = collection(db, `/artifacts/${appId}/public/data/raffles`);
+    const unsubscribe = onSnapshot(rafflesColRef, (querySnapshot) => {
+      const raffleEntries = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as RaffleSale));
+      setRaffles(raffleEntries);
+    }, (error) => {
+      console.error('Error fetching raffles:', error);
+      setNotification({ message: 'Erro ao carregar rifas.', type: 'error' });
+    });
+    return () => unsubscribe();
+  }, [isAuthReady, db]);
+
+  // Fetch dados de Compras
+  useEffect(() => {
+    if (!isAuthReady || !db) return;
+    const purchasesColRef = collection(db, `/artifacts/${appId}/public/data/purchases`);
+    const unsubscribe = onSnapshot(purchasesColRef, (snapshot) => {
+      const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as PurchaseRecord));
+      setPurchases(data);
+    }, (error) => {
+      console.error('Error fetching purchases:', error);
+      setNotification({ message: 'Erro ao carregar compras.', type: 'error' });
+    });
+    return () => unsubscribe();
+  }, [isAuthReady, db]);
 
   // Fetch dados dos Projetos
   useEffect(() => {
@@ -213,8 +268,8 @@ export default function App() {
 
   const renderPage = () => {
     switch (currentPage) {
-      case 'about':
-        return <AboutPage teamHierarchy={teamHierarchy} siteSettings={siteSettings} />;
+      case 'about':
+        return <AboutPage teamHierarchy={teamHierarchy} siteSettings={siteSettings} projectCount={projects.length} />;
       case 'projects':
         return <ProjectsPage projects={projects} />;
       case 'login':
@@ -246,20 +301,22 @@ export default function App() {
             onNotify={setNotification}
           />
         );
-      case 'admin':
-        return user ? (
-          <AdminPage
-            db={db}
-            storage={storageInstance}
-            teamHierarchy={teamHierarchy}
-            sponsors={sponsors}
-            achievements={achievements}
-            projects={projects}
-            siteSettings={siteSettings}
-            financials={financials}
-            setNotification={setNotification}
-          />
-        ) : (
+      case 'admin':
+        return user ? (
+          <AdminPage
+            db={db}
+            storage={storageInstance}
+            teamHierarchy={teamHierarchy}
+            sponsors={sponsors}
+            achievements={achievements}
+            projects={projects}
+            purchases={purchases}
+            siteSettings={siteSettings}
+            financials={financials}
+            raffles={raffles}
+            setNotification={setNotification}
+          />
+        ) : (
           <LoginPage
             auth={authInstance}
             isAuthReady={isAuthReady}
@@ -267,8 +324,19 @@ export default function App() {
             onNavigate={setCurrentPage}
           />
         );
-      case 'home':
-      default:
+      case 'raffle':
+        return (
+          <RafflePublicPage
+            db={db}
+            teamHierarchy={teamHierarchy}
+            raffleTicketPrice={siteSettings.raffleTicketPrice ?? 0}
+            raffleValidationCode={siteSettings.raffleValidationCode ?? ''}
+            raffleClosed={Boolean(siteSettings.raffleClosed)}
+            setNotification={setNotification}
+          />
+        );
+      case 'home':
+      default:
         return (
           <HomePage
             teamHierarchy={teamHierarchy}
@@ -278,8 +346,8 @@ export default function App() {
             onMemberSelect={setSelectedMember}
           />
         );
-    }
-  };
+    }
+  };
 
   return (
     <div className="bg-gray-100 min-h-screen text-gray-800 font-sans antialiased">

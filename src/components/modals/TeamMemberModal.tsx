@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react';
-import { Briefcase, GraduationCap, Hash, User, Users, X } from 'lucide-react';
+import { Briefcase, CalendarDays, GraduationCap, User, Users, X } from 'lucide-react';
 
 import type { TeamMember } from '../../types';
+import { calculateAgeFromDate, parseDateInput } from '../../utils/dateHelpers';
 
 interface TeamMemberModalProps {
   member: TeamMember | null;
@@ -13,7 +14,9 @@ export function TeamMemberModal({ member, onClose }: TeamMemberModalProps) {
     return null;
   }
 
-  const { name, assignments, generalRoles, age, course, img } = member;
+  const { name, assignments, generalRoles, age, course, img, birthDate } = member;
+  const computedAge = calculateAgeFromDate(birthDate, age);
+  const birthInfo = computedAge ? `${computedAge} anos` : null;
 
   return (
     <div
@@ -55,7 +58,7 @@ export function TeamMemberModal({ member, onClose }: TeamMemberModalProps) {
               </div>
             ) : null}
 
-            {age ? <InfoRow icon={<Hash size={16} />}>{age} anos</InfoRow> : null}
+            {birthInfo ? <InfoRow icon={<CalendarDays size={16} />}>{birthInfo}</InfoRow> : null}
             {course ? <InfoRow icon={<GraduationCap size={16} />}>{course}</InfoRow> : null}
           </div>
           <button

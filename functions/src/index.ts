@@ -159,19 +159,28 @@ const slugify = (value: string) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "") || "upload";
 
+const isWebpMimeType = (mimeType?: string) =>
+  typeof mimeType === "string" && mimeType.toLowerCase().includes("webp");
+
 const processImage = async (
   buffer: Buffer,
   target: UploadTarget,
+  mimeType?: string,
 ): Promise<{processed: Buffer; contentType: string; extension: string}> => {
   const preset = UPLOAD_PRESETS[target];
-  let pipeline = sharp(buffer).rotate().resize(preset.width, preset.height, {
+  const originalInstance = sharp(buffer);
+  const metadata = await originalInstance.metadata();
+  const alreadyWebp = metadata.format === "webp" || isWebpMimeType(mimeType);
+  const pipeline = originalInstance.clone().rotate().resize(preset.width, preset.height, {
     fit: preset.fit,
     background: preset.background ?? "#ffffff",
   });
 
-  const processed = await pipeline.webp({
-    quality: preset.quality ?? 85,
-  }).toBuffer();
+  const processed = alreadyWebp
+    ? await pipeline.toBuffer()
+    : await pipeline.webp({
+      quality: preset.quality ?? 85,
+    }).toBuffer();
 
   return {
     processed,
@@ -219,8 +228,12 @@ const handleUpload = async (req: Request, res: Response) => {
 
   try {
     const uploadedFile = await parseFileFromRequest(req);
+    if (!uploadedFile.mimeType?.startsWith("image/")) {
+      res.status(400).json({error: "Apenas ficheiros de imagem são suportados."});
+      return;
+    }
     const {processed, contentType, extension} =
-      await processImage(uploadedFile.buffer, targetParam);
+      await processImage(uploadedFile.buffer, targetParam, uploadedFile.mimeType);
     const destination = buildDestinationPath(
       targetParam,
       uploadedFile.fileName,

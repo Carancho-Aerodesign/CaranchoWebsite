@@ -16,10 +16,12 @@ export interface TeamMember {
   id: string;
   name: string;
   age?: number;
+  birthDate?: string | Date | Timestamp;
   course?: string;
   img?: string;
   generalRoles?: string[];
   assignments?: TeamAssignment[];
+  membershipType?: 'member' | 'trainee';
   quote?: string;
   badges?: string[];
 }
@@ -64,11 +66,16 @@ export interface SiteSettings {
   history?: string;
   mission?: string;
   vision?: string;
+  raffleTicketPrice?: number;
+  rafflePrize?: string;
+  raffleValidationCode?: string;
+  raffleClosed?: boolean;
 }
 
 export interface PaymentRecord {
   id: string;
   memberId: string;
+  memberName?: string;
   year: number;
   month: number;
   amount: number;
@@ -80,4 +87,27 @@ export interface FinancialSnapshot {
   sponsorships: Sponsor[];
 }
 
-export type AppPage = 'home' | 'about' | 'projects' | 'login' | 'register' | 'admin';
+export interface RaffleSale {
+  id: string;
+  ticketNumber: string;
+  buyerName: string;
+  sellerId?: string;
+  sellerName?: string;
+  contact?: string;
+  amount: number;
+  received?: boolean;
+  dateSold?: Timestamp | Date;
+  updatedAt?: Timestamp | Date;
+}
+
+export interface PurchaseRecord {
+  id: string;
+  description: string;
+  vendor?: string;
+  category?: string;
+  amount: number;
+  date: Timestamp | Date;
+  notes?: string;
+}
+
+export type AppPage = 'home' | 'about' | 'projects' | 'login' | 'register' | 'admin' | 'raffle';
