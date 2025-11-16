@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { initializeApp, getApps } from 'firebase/app';
 import type { Auth, User } from 'firebase/auth';
 import type { Firestore } from 'firebase/firestore';
@@ -70,6 +70,28 @@ export default function App() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [siteSettings, setSiteSettings] = useState<SiteSettings>(blankSiteSettings);
   const [financials, setFinancials] = useState<FinancialSnapshot>({ payments: [], sponsorships: [] });
+
+  const latestProjectHeroUrl = useMemo(() => {
+    if (!projects.length) {
+      return null;
+    }
+    const latestProject = projects.reduce<Project | null>((currentLatest, project) => {
+      if (!currentLatest) {
+        return project;
+      }
+      if (project.year > currentLatest.year) {
+        return project;
+      }
+      if (project.year === currentLatest.year) {
+        return project.title.localeCompare(currentLatest.title) > 0 ? project : currentLatest;
+      }
+      return currentLatest;
+    }, null);
+
+    return latestProject?.imageUrl ?? null;
+  }, [projects]);
+
+  const homeHeroImageUrl = latestProjectHeroUrl && latestProjectHeroUrl.trim().length > 0 ? latestProjectHeroUrl : siteSettings.heroImageUrl;
 
   // Inicialização do Firebase
   useEffect(() => {
@@ -247,15 +269,15 @@ export default function App() {
         );
       case 'home':
       default:
-        return (
-          <HomePage
-            teamHierarchy={teamHierarchy}
-            sponsors={sponsors}
-            siteSettings={siteSettings}
-            achievements={achievements}
-            onMemberSelect={setSelectedMember}
-          />
-        );
+        return (
+          <HomePage
+            teamHierarchy={teamHierarchy}
+            sponsors={sponsors}
+            siteSettings={{ ...siteSettings, heroImageUrl: homeHeroImageUrl }}
+            achievements={achievements}
+            onMemberSelect={setSelectedMember}
+          />
+        );
     }
   };
 
